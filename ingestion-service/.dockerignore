@@ -1,0 +1,7 @@
+vendor
+*.exe
+.env
+*.env
+.git
+.DS_Store
+testdata
