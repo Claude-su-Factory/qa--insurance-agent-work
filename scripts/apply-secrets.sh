@@ -39,6 +39,7 @@ kubectl create secret generic api-secrets \
 
 # supabase-secrets (Key name aligned with Deployment env)
 kubectl create secret generic supabase-secrets \
+  --from-literal=SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
   --from-literal=NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
   --from-literal=SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
