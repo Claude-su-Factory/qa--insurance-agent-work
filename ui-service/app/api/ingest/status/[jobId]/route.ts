@@ -16,7 +16,10 @@ export async function GET(
 
   const res = await fetch(`${ingestionUrl}/ingest/status/${params.jobId}`, {
     cache: "no-store",
-    headers: { "X-User-ID": user.id },
+    headers: {
+      "X-User-ID": user.id,
+      "X-Internal-Token": process.env.INTERNAL_AUTH_TOKEN ?? "",
+    },
   });
 
   if (res.status === 404) {

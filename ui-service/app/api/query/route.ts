@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
       "X-User-ID": user.id,
       "X-Document-ID": documentId,
+      "X-Internal-Token": process.env.INTERNAL_AUTH_TOKEN ?? "",
     },
     body: JSON.stringify({ question }),
   });
