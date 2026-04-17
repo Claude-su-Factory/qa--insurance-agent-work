@@ -5,6 +5,7 @@ import { VoyageClient } from "./clients/voyage.js";
 import { InsuranceQdrantClient } from "./clients/qdrant.js";
 import { buildGraph } from "./graph/graph.js";
 import { internalAuth } from "./middleware/internal-auth.js";
+import { getLangfuse } from "./clients/langfuse.js";
 
 const voyageClient = new VoyageClient(process.env.VOYAGE_API_KEY!);
 const qdrantClient = new InsuranceQdrantClient(
@@ -33,7 +34,36 @@ app.post("/query", async (c) => {
     return c.json({ error: "question is required" }, 400);
   }
 
+  const langfuse = getLangfuse();
+  const trace = langfuse?.trace({
+    name: "insurance-qa",
+    userId,
+    metadata: { documentId },
+    input: { question },
+  });
+
   const result = await graph.invoke({ question, userId, documentId });
+
+  if (trace) {
+    trace.update({
+      output: {
+        answer: result.answer,
+        citations: result.citations,
+        questionType: result.questionType,
+        gradingScore: result.gradingScore,
+        retryCount: result.retryCount,
+      },
+    });
+    if (result.gradingScore > 0) {
+      trace.score({
+        name: "answer_quality",
+        value: result.gradingScore,
+        comment: `retryCount=${result.retryCount}`,
+      });
+    }
+    await langfuse?.flushAsync();
+  }
+
   return c.json({
     answer: result.answer,
     citations: result.citations,
