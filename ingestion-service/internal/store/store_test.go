@@ -11,15 +11,17 @@ import (
 type MockStore struct {
 	UpsertedChunks []string
 	LastUserID     string
+	LastDocumentID string
 	Err            error
 }
 
-func (m *MockStore) Upsert(_ context.Context, chunks []string, vectors [][]float32, docName string, userID string) error {
+func (m *MockStore) Upsert(_ context.Context, chunks []string, vectors [][]float32, docName string, userID string, documentID string) error {
 	if m.Err != nil {
 		return m.Err
 	}
 	m.UpsertedChunks = append(m.UpsertedChunks, chunks...)
 	m.LastUserID = userID
+	m.LastDocumentID = documentID
 	return nil
 }
 
@@ -35,11 +37,12 @@ func TestMockStore_Upsert(t *testing.T) {
 		[][]float32{{0.1}, {0.2}},
 		"삼성생명_암보험",
 		"user-uuid-123",
+		"doc-uuid-456",
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"chunk1", "chunk2"}, mock.UpsertedChunks)
 	assert.Equal(t, "user-uuid-123", mock.LastUserID)
+	assert.Equal(t, "doc-uuid-456", mock.LastDocumentID)
 }
 
-// QdrantStore가 Store 인터페이스를 구현하는지 컴파일 타임 확인
 var _ store.Store = (*store.QdrantStore)(nil)

@@ -15,9 +15,8 @@ import (
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/config"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/handler"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/job"
+	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/supabase"
 )
-
-// --- Mocks ---
 
 type mockParser struct {
 	text string
@@ -48,15 +47,22 @@ func (m *mockEmbedder) Embed(_ context.Context, texts []string) ([][]float32, er
 
 type mockStore struct{ err error }
 
-func (m *mockStore) Upsert(_ context.Context, _ []string, _ [][]float32, _ string, _ string) error {
+func (m *mockStore) Upsert(_ context.Context, _ []string, _ [][]float32, _ string, _ string, _ string) error {
 	return m.err
 }
 func (m *mockStore) EnsureCollection(_ context.Context, _ uint64) error { return m.err }
 
-type mockSupabase struct{ err error }
+type mockSupabase struct {
+	docID string
+	err   error
+}
 
-func (m *mockSupabase) InsertDocument(_ context.Context, _ string, _ string, _ int) error {
-	return m.err
+func (m *mockSupabase) InsertDocument(_ context.Context, _ string, _ string, _ int) (string, error) {
+	return m.docID, m.err
+}
+
+func (m *mockSupabase) UpdateChunkCount(_ context.Context, _ string, _ int) error {
+	return nil
 }
 
 func newTestApp(p *mockParser, c *mockChunker, e *mockEmbedder, s *mockStore, sb *mockSupabase, js *job.Store) *fiber.App {
@@ -84,7 +90,7 @@ func TestHandle_Success(t *testing.T) {
 		&mockChunker{chunks: []string{"chunk1", "chunk2"}},
 		&mockEmbedder{vecs: [][]float32{{0.1, 0.2}}},
 		&mockStore{},
-		&mockSupabase{},
+		&mockSupabase{docID: "doc-uuid-123"},
 		job.NewStore(),
 	)
 
@@ -101,22 +107,35 @@ func TestHandle_Success(t *testing.T) {
 	json.NewDecoder(resp.Body).Decode(&result)
 	assert.NotEmpty(t, result["jobId"])
 	assert.Equal(t, "samsung", result["document"])
+	assert.Equal(t, "doc-uuid-123", result["documentId"])
 }
 
-func TestHandle_MissingUserID(t *testing.T) {
+func TestHandle_DuplicateDocument(t *testing.T) {
 	app := newTestApp(
 		&mockParser{},
 		&mockChunker{},
 		&mockEmbedder{},
 		&mockStore{},
-		&mockSupabase{},
+		&mockSupabase{err: supabase.ErrDuplicateDocument},
 		job.NewStore(),
 	)
 
 	body, ct := multipartPDF("samsung.pdf")
 	req := httptest.NewRequest("POST", "/ingest", body)
 	req.Header.Set("Content-Type", ct)
-	// X-User-ID 헤더 없음 — 401 반환되어야 함
+	req.Header.Set("X-User-ID", "test-user-123")
+
+	resp, err := app.Test(req, 5000)
+	require.NoError(t, err)
+	assert.Equal(t, 409, resp.StatusCode)
+}
+
+func TestHandle_MissingUserID(t *testing.T) {
+	app := newTestApp(&mockParser{}, &mockChunker{}, &mockEmbedder{}, &mockStore{}, &mockSupabase{docID: "x"}, job.NewStore())
+
+	body, ct := multipartPDF("samsung.pdf")
+	req := httptest.NewRequest("POST", "/ingest", body)
+	req.Header.Set("Content-Type", ct)
 
 	resp, err := app.Test(req, 5000)
 	require.NoError(t, err)
@@ -124,7 +143,7 @@ func TestHandle_MissingUserID(t *testing.T) {
 }
 
 func TestHandle_NonPDFRejected(t *testing.T) {
-	app := newTestApp(&mockParser{}, &mockChunker{}, &mockEmbedder{}, &mockStore{}, &mockSupabase{}, job.NewStore())
+	app := newTestApp(&mockParser{}, &mockChunker{}, &mockEmbedder{}, &mockStore{}, &mockSupabase{docID: "x"}, job.NewStore())
 
 	body := &bytes.Buffer{}
 	w := multipart.NewWriter(body)
@@ -142,7 +161,7 @@ func TestHandle_NonPDFRejected(t *testing.T) {
 }
 
 func TestHandle_MissingFile(t *testing.T) {
-	app := newTestApp(&mockParser{}, &mockChunker{}, &mockEmbedder{}, &mockStore{}, &mockSupabase{}, job.NewStore())
+	app := newTestApp(&mockParser{}, &mockChunker{}, &mockEmbedder{}, &mockStore{}, &mockSupabase{docID: "x"}, job.NewStore())
 
 	req := httptest.NewRequest("POST", "/ingest", nil)
 	req.Header.Set("Content-Type", "multipart/form-data; boundary=xxx")

@@ -11,7 +11,7 @@ import (
 )
 
 type Store interface {
-	Upsert(ctx context.Context, chunks []string, vectors [][]float32, docName string, userID string) error
+	Upsert(ctx context.Context, chunks []string, vectors [][]float32, docName string, userID string, documentID string) error
 	EnsureCollection(ctx context.Context, vectorSize uint64) error
 }
 
@@ -30,7 +30,7 @@ type point struct {
 	Payload map[string]any `json:"payload"`
 }
 
-func (q *QdrantStore) Upsert(ctx context.Context, chunks []string, vectors [][]float32, docName string, userID string) error {
+func (q *QdrantStore) Upsert(ctx context.Context, chunks []string, vectors [][]float32, docName string, userID string, documentID string) error {
 	points := make([]point, len(chunks))
 	for i, chunk := range chunks {
 		points[i] = point{
@@ -41,6 +41,7 @@ func (q *QdrantStore) Upsert(ctx context.Context, chunks []string, vectors [][]f
 				"document_name": docName,
 				"chunk_index":   i,
 				"user_id":       userID,
+				"document_id":   documentID,
 			},
 		}
 	}

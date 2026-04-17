@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,11 +16,12 @@ import (
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/job"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/parser"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/store"
+	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/supabase"
 )
 
-// SupabaseInserter는 문서 메타데이터를 Supabase에 저장하는 인터페이스다.
 type SupabaseInserter interface {
-	InsertDocument(ctx context.Context, userID string, filename string, chunkCount int) error
+	InsertDocument(ctx context.Context, userID string, filename string, chunkCount int) (string, error)
+	UpdateChunkCount(ctx context.Context, documentID string, chunkCount int) error
 }
 
 type IngestHandler struct {
@@ -50,6 +52,15 @@ func (h *IngestHandler) Handle(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "only PDF files are accepted"})
 	}
 
+	// Supabase INSERT 먼저 — document_id 획득, 중복 시 409
+	docID, err := h.supabase.InsertDocument(context.Background(), userID, file.Filename, 0)
+	if err != nil {
+		if errors.Is(err, supabase.ErrDuplicateDocument) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "이미 관리 중인 약관입니다"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "문서 등록 실패"})
+	}
+
 	tmpFile, err := os.CreateTemp("", "ingest-*.pdf")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to create temp file"})
@@ -66,12 +77,12 @@ func (h *IngestHandler) Handle(c *fiber.Ctx) error {
 	docName := strings.TrimSuffix(file.Filename, filepath.Ext(file.Filename))
 	h.jobStore.Create(jobID, file.Filename)
 
-	go h.processAsync(jobID, tmpPath, docName, userID, file.Filename)
+	go h.processAsync(jobID, tmpPath, docName, userID, docID)
 
-	return c.JSON(fiber.Map{"jobId": jobID, "document": docName})
+	return c.JSON(fiber.Map{"jobId": jobID, "document": docName, "documentId": docID})
 }
 
-func (h *IngestHandler) processAsync(jobID, tmpPath, docName, userID, filename string) {
+func (h *IngestHandler) processAsync(jobID, tmpPath, docName, userID, docID string) {
 	defer os.Remove(tmpPath)
 
 	fail := func(msg string) {
@@ -122,13 +133,12 @@ func (h *IngestHandler) processAsync(jobID, tmpPath, docName, userID, filename s
 	}
 
 	h.jobStore.Update(jobID, func(s *job.Status) { s.Step = job.StepStoring; s.Progress = 75 })
-	if err := h.store.Upsert(context.Background(), chunks, allVectors, docName, userID); err != nil {
+	if err := h.store.Upsert(context.Background(), chunks, allVectors, docName, userID, docID); err != nil {
 		fail("Qdrant 저장 실패: " + err.Error())
 		return
 	}
 
-	// Supabase에 문서 메타데이터 저장 (실패해도 job은 완료 처리)
-	_ = h.supabase.InsertDocument(context.Background(), userID, filename, len(chunks))
+	_ = h.supabase.UpdateChunkCount(context.Background(), docID, len(chunks))
 
 	h.jobStore.Update(jobID, func(s *job.Status) {
 		s.Step = job.StepDone
