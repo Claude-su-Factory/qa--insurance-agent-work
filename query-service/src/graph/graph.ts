@@ -5,8 +5,13 @@ import { createRetriever } from "./nodes/retriever.js";
 import { toolsAgent } from "./nodes/tools-agent.js";
 import { generateAnswer } from "./nodes/answer-generator.js";
 import { formatCitations } from "./nodes/citation-formatter.js";
+import { grader } from "./nodes/grader.js";
+import { queryRewriter } from "./nodes/query-rewriter.js";
 import type { VoyageClient } from "../clients/voyage.js";
 import type { InsuranceQdrantClient } from "../clients/qdrant.js";
+
+const MAX_RETRIES = 2;
+const PASSING_SCORE = 2;
 
 export function buildGraph(
   voyageClient: VoyageClient,
@@ -19,6 +24,8 @@ export function buildGraph(
     .addNode("retriever", retrieve)
     .addNode("tools_agent", toolsAgent)
     .addNode("answer_generator", generateAnswer)
+    .addNode("grader", grader)
+    .addNode("query_rewriter", queryRewriter)
     .addNode("citation_formatter", formatCitations)
     .addEdge(START, "question_classifier")
     .addEdge("question_classifier", "retriever")
@@ -34,7 +41,21 @@ export function buildGraph(
       }
     )
     .addEdge("tools_agent", "answer_generator")
-    .addEdge("answer_generator", "citation_formatter")
+    .addEdge("answer_generator", "grader")
+    .addConditionalEdges(
+      "grader",
+      (state) => {
+        if (state.gradingScore < PASSING_SCORE && state.retryCount < MAX_RETRIES) {
+          return "query_rewriter";
+        }
+        return "citation_formatter";
+      },
+      {
+        query_rewriter: "query_rewriter",
+        citation_formatter: "citation_formatter",
+      }
+    )
+    .addEdge("query_rewriter", "retriever")
     .addEdge("citation_formatter", END);
 
   return graph.compile();
