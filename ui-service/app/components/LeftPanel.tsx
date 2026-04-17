@@ -17,7 +17,7 @@ const STEP_LABELS: Record<string, string> = {
 const STEPS = ["parsing", "chunking", "embedding", "storing"] as const;
 
 export default function LeftPanel() {
-  const { documents, setDocuments, ingesting, setIngesting } = useApp();
+  const { documents, setDocuments, ingesting, setIngesting, selectedDocument, selectDocument } = useApp();
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
@@ -81,6 +81,15 @@ export default function LeftPanel() {
               createdAt: d.created_at,
             }))
           );
+          const newDoc = docs.find((d: any) => d.filename === ingesting.filename);
+          if (newDoc) {
+            selectDocument({
+              id: newDoc.id,
+              filename: newDoc.filename,
+              clauseCount: newDoc.chunk_count,
+              createdAt: newDoc.created_at,
+            });
+          }
         }
         setTimeout(() => setIngesting(null), 2000);
       }
@@ -100,6 +109,10 @@ export default function LeftPanel() {
       formData.append("file", file);
 
       const res = await fetch("/api/ingest", { method: "POST", body: formData });
+      if (res.status === 409) {
+        alert("이미 관리 중인 약관입니다.");
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         alert(data.error ?? "업로드 실패");
@@ -202,8 +215,10 @@ export default function LeftPanel() {
         <>
           <div className="px-4 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">업로드된 약관</div>
           <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-blue-50 border border-blue-100 cursor-pointer hover:border-blue-300 transition-colors">
+            {documents.map((doc) => {
+              const isSelected = selectedDocument?.id === doc.id;
+              return (
+              <div key={doc.id} onClick={() => selectDocument(doc)} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer hover:border-blue-300 transition-colors ${isSelected ? "border-blue-500 bg-blue-100" : "bg-blue-50 border-blue-100"}`}>
                 <div className="w-7 h-8 bg-blue-100 rounded flex items-center justify-center text-xs flex-shrink-0">📋</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium text-slate-800 truncate">{doc.filename.replace(".pdf", "")}</p>
@@ -213,7 +228,8 @@ export default function LeftPanel() {
                   <span className="text-white text-[8px] font-bold">✓</span>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         </>
       )}

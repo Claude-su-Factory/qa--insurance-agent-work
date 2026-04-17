@@ -11,7 +11,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function ChatPanel() {
-  const { messages, setMessages, setCitations } = useApp();
+  const { messages, setMessages, setCitations, selectedDocument, loadingMessages } = useApp();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -34,7 +34,7 @@ export default function ChatPanel() {
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, documentId: selectedDocument!.id }),
       });
       const data = await res.json();
       const citations = data.citations ?? [];
@@ -67,6 +67,18 @@ export default function ChatPanel() {
     e.preventDefault();
     sendMessage(input);
   };
+
+  if (!selectedDocument) {
+    return (
+      <div className="flex-1 bg-white flex flex-col items-center justify-center gap-4 text-center min-w-0">
+        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-3xl">📄</div>
+        <div>
+          <h2 className="text-base font-semibold text-slate-800 mb-1">약관을 선택해주세요</h2>
+          <p className="text-[12px] text-slate-400">왼쪽 패널에서 약관을 선택하면 대화를 시작할 수 있습니다</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-white flex flex-col min-w-0">
