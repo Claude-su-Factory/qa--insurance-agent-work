@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
+import { createClient } from "../lib/supabase/client";
 
 export interface DocumentMeta {
   id: string;
@@ -39,39 +40,17 @@ interface AppContextType {
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   documents: DocumentMeta[];
   setDocuments: React.Dispatch<React.SetStateAction<DocumentMeta[]>>;
+  selectedDocument: DocumentMeta | null;
+  selectDocument: (doc: DocumentMeta | null) => void;
   ingesting: IngestingDoc | null;
   setIngesting: React.Dispatch<React.SetStateAction<IngestingDoc | null>>;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  loadingMessages: boolean;
   citations: Citation[];
   setCitations: React.Dispatch<React.SetStateAction<Citation[]>>;
   activeCitation: number | null;
   setActiveCitation: React.Dispatch<React.SetStateAction<number | null>>;
-}
-
-const MESSAGES_KEY = "qa_messages";
-const CITATIONS_KEY = "qa_citations";
-
-function loadMessages(): Message[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(MESSAGES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as (Omit<Message, "timestamp"> & { timestamp: string })[];
-    return parsed.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }));
-  } catch {
-    return [];
-  }
-}
-
-function loadCitations(): Citation[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(CITATIONS_KEY);
-    return raw ? (JSON.parse(raw) as Citation[]) : [];
-  } catch {
-    return [];
-  }
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -85,26 +64,56 @@ export function AppProvider({
 }) {
   const [user, setUser] = useState<User | null>(initialUser);
   const [documents, setDocuments] = useState<DocumentMeta[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentMeta | null>(null);
   const [ingesting, setIngesting] = useState<IngestingDoc | null>(null);
-  const [messages, setMessages] = useState<Message[]>(loadMessages);
-  const [citations, setCitations] = useState<Citation[]>(loadCitations);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [citations, setCitations] = useState<Citation[]>([]);
   const [activeCitation, setActiveCitation] = useState<number | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
-  }, [messages]);
+  const supabase = createClient();
 
-  useEffect(() => {
-    localStorage.setItem(CITATIONS_KEY, JSON.stringify(citations));
-  }, [citations]);
+  const selectDocument = useCallback(async (doc: DocumentMeta | null) => {
+    setSelectedDocument(doc);
+    setMessages([]);
+    setCitations([]);
+    setActiveCitation(null);
+
+    if (!doc) return;
+
+    setLoadingMessages(true);
+    const { data } = await supabase
+      .from("messages")
+      .select("id, role, content, citations, created_at")
+      .eq("document_id", doc.id)
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      const loaded = data.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        citations: m.citations as Citation[] | undefined,
+        timestamp: new Date(m.created_at),
+      }));
+      setMessages(loaded);
+
+      const lastAssistant = [...loaded].reverse().find((m) => m.role === "assistant");
+      if (lastAssistant?.citations && lastAssistant.citations.length > 0) {
+        setCitations(lastAssistant.citations);
+      }
+    }
+    setLoadingMessages(false);
+  }, [supabase]);
 
   return (
     <AppContext.Provider
       value={{
         user, setUser,
         documents, setDocuments,
+        selectedDocument, selectDocument,
         ingesting, setIngesting,
         messages, setMessages,
+        loadingMessages,
         citations, setCitations,
         activeCitation, setActiveCitation,
       }}
