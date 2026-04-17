@@ -10,7 +10,7 @@ export function createRetriever(
     state: typeof AgentState.State
   ): Promise<Partial<typeof AgentState.State>> {
     const [embedding] = await voyageClient.embed([state.question]);
-    const clauses = await qdrantClient.search(embedding, state.userId, 5);
+    const clauses = await qdrantClient.search(embedding, state.userId, state.documentId, 5);
     return { retrievedClauses: clauses };
   };
 }

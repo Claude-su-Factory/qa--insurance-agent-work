@@ -8,6 +8,7 @@ interface QdrantPayload {
   clause_number?: string;
   clause_title?: string;
   user_id: string;
+  document_id: string;
 }
 
 export class InsuranceQdrantClient {
@@ -19,17 +20,15 @@ export class InsuranceQdrantClient {
     this.collection = collection;
   }
 
-  async search(vector: number[], userId: string, limit = 5): Promise<Clause[]> {
+  async search(vector: number[], userId: string, documentId: string, limit = 5): Promise<Clause[]> {
     const results = await this.client.search(this.collection, {
       vector,
       limit,
       with_payload: true,
       filter: {
         must: [
-          {
-            key: "user_id",
-            match: { value: userId },
-          },
+          { key: "user_id", match: { value: userId } },
+          { key: "document_id", match: { value: documentId } },
         ],
       },
     });
