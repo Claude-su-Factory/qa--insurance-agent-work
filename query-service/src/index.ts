@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { VoyageClient } from "./clients/voyage.js";
 import { InsuranceQdrantClient } from "./clients/qdrant.js";
 import { buildGraph } from "./graph/graph.js";
+import { internalAuth } from "./middleware/internal-auth.js";
 
 const voyageClient = new VoyageClient(process.env.VOYAGE_API_KEY!);
 const qdrantClient = new InsuranceQdrantClient(
@@ -12,7 +13,13 @@ const qdrantClient = new InsuranceQdrantClient(
 );
 const graph = buildGraph(voyageClient, qdrantClient);
 
+const internalToken = process.env.INTERNAL_AUTH_TOKEN;
+if (!internalToken) {
+  throw new Error("INTERNAL_AUTH_TOKEN is required");
+}
+
 const app = new Hono();
+app.use("*", internalAuth(internalToken));
 
 app.post("/query", async (c) => {
   const userId = c.req.header("x-user-id");
