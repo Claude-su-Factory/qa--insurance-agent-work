@@ -37,7 +37,11 @@ services:
     restart: on-failure
 
   ui-service:
-    build: ./ui-service
+    build:
+      context: ./ui-service
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     ports:
       - "3000:3000"
     env_file:
