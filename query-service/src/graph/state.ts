@@ -41,4 +41,12 @@ export const AgentState = Annotation.Root({
     reducer: (_, next) => next,
     default: () => [],
   }),
+  retryCount: Annotation<number>({
+    reducer: (_, next) => next,
+    default: () => 0,
+  }),
+  gradingScore: Annotation<number>({
+    reducer: (_, next) => next,
+    default: () => 0,
+  }),
 });
