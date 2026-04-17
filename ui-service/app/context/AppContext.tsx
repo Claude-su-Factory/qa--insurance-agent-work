@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "../lib/supabase/client";
 
@@ -46,7 +46,6 @@ interface AppContextType {
   setIngesting: React.Dispatch<React.SetStateAction<IngestingDoc | null>>;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  loadingMessages: boolean;
   citations: Citation[];
   setCitations: React.Dispatch<React.SetStateAction<Citation[]>>;
   activeCitation: number | null;
@@ -67,11 +66,10 @@ export function AppProvider({
   const [selectedDocument, setSelectedDocument] = useState<DocumentMeta | null>(null);
   const [ingesting, setIngesting] = useState<IngestingDoc | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
   const [citations, setCitations] = useState<Citation[]>([]);
   const [activeCitation, setActiveCitation] = useState<number | null>(null);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const selectDocument = useCallback(async (doc: DocumentMeta | null) => {
     setSelectedDocument(doc);
@@ -81,7 +79,6 @@ export function AppProvider({
 
     if (!doc) return;
 
-    setLoadingMessages(true);
     const { data } = await supabase
       .from("messages")
       .select("id, role, content, citations, created_at")
@@ -102,7 +99,6 @@ export function AppProvider({
         setCitations(lastAssistant.citations);
       }
     }
-    setLoadingMessages(false);
   }, [supabase]);
 
   return (
@@ -113,7 +109,6 @@ export function AppProvider({
         selectedDocument, selectDocument,
         ingesting, setIngesting,
         messages, setMessages,
-        loadingMessages,
         citations, setCitations,
         activeCitation, setActiveCitation,
       }}

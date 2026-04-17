@@ -17,7 +17,6 @@ const app = new Hono();
 app.post("/query", async (c) => {
   const userId = c.req.header("x-user-id");
   const documentId = c.req.header("x-document-id");
-  const sessionId = c.req.header("x-session-id") ?? crypto.randomUUID();
 
   if (!userId) return c.json({ error: "X-User-ID header is required" }, 401);
   if (!documentId) return c.json({ error: "X-Document-ID header is required" }, 400);
@@ -27,7 +26,7 @@ app.post("/query", async (c) => {
     return c.json({ error: "question is required" }, 400);
   }
 
-  const result = await graph.invoke({ question, userId, sessionId, documentId });
+  const result = await graph.invoke({ question, userId, documentId });
   return c.json({
     answer: result.answer,
     citations: result.citations,

@@ -20,7 +20,6 @@ export type QuestionType = "coverage" | "claim_eligibility" | "general";
 export const AgentState = Annotation.Root({
   question: Annotation<string>(),
   userId: Annotation<string>(),
-  sessionId: Annotation<string>(),
   documentId: Annotation<string>(),
   questionType: Annotation<QuestionType>({
     reducer: (_, next) => next,
