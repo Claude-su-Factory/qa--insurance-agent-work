@@ -81,9 +81,17 @@ func (c *Client) InsertDocument(ctx context.Context, userID string, filename str
 	return docs[0].ID, nil
 }
 
-func (c *Client) UpdateChunkCount(ctx context.Context, documentID string, chunkCount int) error {
-	body, _ := json.Marshal(map[string]int{"chunk_count": chunkCount})
+func (c *Client) UpdateDocumentReady(ctx context.Context, documentID string, chunkCount int) error {
+	body, _ := json.Marshal(map[string]any{"chunk_count": chunkCount, "status": "ready"})
+	return c.patchDocument(ctx, documentID, body)
+}
 
+func (c *Client) UpdateDocumentFailed(ctx context.Context, documentID string) error {
+	body, _ := json.Marshal(map[string]any{"status": "failed"})
+	return c.patchDocument(ctx, documentID, body)
+}
+
+func (c *Client) patchDocument(ctx context.Context, documentID string, body []byte) error {
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPatch,
@@ -102,5 +110,9 @@ func (c *Client) UpdateChunkCount(ctx context.Context, documentID string, chunkC
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("supabase patch document failed: status %d", resp.StatusCode)
+	}
 	return nil
 }

@@ -21,7 +21,8 @@ import (
 
 type SupabaseInserter interface {
 	InsertDocument(ctx context.Context, userID string, filename string, chunkCount int) (string, error)
-	UpdateChunkCount(ctx context.Context, documentID string, chunkCount int) error
+	UpdateDocumentReady(ctx context.Context, documentID string, chunkCount int) error
+	UpdateDocumentFailed(ctx context.Context, documentID string) error
 }
 
 type IngestHandler struct {
@@ -90,6 +91,7 @@ func (h *IngestHandler) processAsync(jobID, tmpPath, docName, userID, docID stri
 			s.Step = job.StepFailed
 			s.Error = msg
 		})
+		_ = h.supabase.UpdateDocumentFailed(context.Background(), docID)
 	}
 
 	h.jobStore.Update(jobID, func(s *job.Status) { s.Step = job.StepParsing; s.Progress = 5 })
@@ -138,7 +140,7 @@ func (h *IngestHandler) processAsync(jobID, tmpPath, docName, userID, docID stri
 		return
 	}
 
-	_ = h.supabase.UpdateChunkCount(context.Background(), docID, len(chunks))
+	_ = h.supabase.UpdateDocumentReady(context.Background(), docID, len(chunks))
 
 	h.jobStore.Update(jobID, func(s *job.Status) {
 		s.Step = job.StepDone

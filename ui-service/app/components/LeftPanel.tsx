@@ -27,7 +27,8 @@ export default function LeftPanel() {
     async function loadDocuments() {
       const { data } = await supabase
         .from("documents")
-        .select("id, filename, chunk_count, created_at")
+        .select("id, filename, chunk_count, created_at, status")
+        .eq("status", "ready")
         .order("created_at", { ascending: false });
 
       if (data) {
@@ -69,7 +70,8 @@ export default function LeftPanel() {
       if (data.step === "done") {
         const { data: docs } = await supabase
           .from("documents")
-          .select("id, filename, chunk_count, created_at")
+          .select("id, filename, chunk_count, created_at, status")
+          .eq("status", "ready")
           .order("created_at", { ascending: false });
 
         if (docs) {

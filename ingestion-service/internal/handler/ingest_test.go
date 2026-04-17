@@ -61,7 +61,11 @@ func (m *mockSupabase) InsertDocument(_ context.Context, _ string, _ string, _ i
 	return m.docID, m.err
 }
 
-func (m *mockSupabase) UpdateChunkCount(_ context.Context, _ string, _ int) error {
+func (m *mockSupabase) UpdateDocumentReady(_ context.Context, _ string, _ int) error {
+	return nil
+}
+
+func (m *mockSupabase) UpdateDocumentFailed(_ context.Context, _ string) error {
 	return nil
 }
 
