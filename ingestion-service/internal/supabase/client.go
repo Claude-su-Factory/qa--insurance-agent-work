@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 )
+
+var ErrDuplicateDocument = errors.New("duplicate document")
 
 type Client struct {
 	url            string
@@ -23,14 +27,18 @@ type documentRecord struct {
 	ChunkCount int    `json:"chunk_count"`
 }
 
-func (c *Client) InsertDocument(ctx context.Context, userID string, filename string, chunkCount int) error {
+type insertedDoc struct {
+	ID string `json:"id"`
+}
+
+func (c *Client) InsertDocument(ctx context.Context, userID string, filename string, chunkCount int) (string, error) {
 	body, err := json.Marshal(documentRecord{
 		UserID:     userID,
 		Filename:   filename,
 		ChunkCount: chunkCount,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	req, err := http.NewRequestWithContext(
@@ -40,21 +48,59 @@ func (c *Client) InsertDocument(ctx context.Context, userID string, filename str
 		bytes.NewReader(body),
 	)
 	if err != nil {
+		return "", err
+	}
+	req.Header.Set("apikey", c.serviceRoleKey)
+	req.Header.Set("Authorization", "Bearer "+c.serviceRoleKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Prefer", "return=representation")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusConflict {
+		return "", ErrDuplicateDocument
+	}
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("supabase insert document failed: status %d, body: %s", resp.StatusCode, string(respBody))
+	}
+
+	var docs []insertedDoc
+	if err := json.Unmarshal(respBody, &docs); err != nil {
+		return "", fmt.Errorf("supabase response parse failed: %w", err)
+	}
+	if len(docs) == 0 {
+		return "", fmt.Errorf("supabase returned empty response")
+	}
+	return docs[0].ID, nil
+}
+
+func (c *Client) UpdateChunkCount(ctx context.Context, documentID string, chunkCount int) error {
+	body, _ := json.Marshal(map[string]int{"chunk_count": chunkCount})
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPatch,
+		fmt.Sprintf("%s/rest/v1/documents?id=eq.%s", c.url, documentID),
+		bytes.NewReader(body),
+	)
+	if err != nil {
 		return err
 	}
 	req.Header.Set("apikey", c.serviceRoleKey)
 	req.Header.Set("Authorization", "Bearer "+c.serviceRoleKey)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Prefer", "return=minimal")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("supabase insert document failed: status %d", resp.StatusCode)
-	}
 	return nil
 }
