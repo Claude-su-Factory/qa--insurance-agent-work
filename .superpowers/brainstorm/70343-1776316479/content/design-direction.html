@@ -1,0 +1,106 @@
+<h2>어떤 디자인 방향이 마음에 드시나요?</h2>
+<p class="subtitle">보험 약관 QA Agent의 전체적인 무드와 스타일을 선택해주세요</p>
+
+<div class="cards">
+
+  <!-- Option A: Modern Dark -->
+  <div class="card" data-choice="dark" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a; padding:16px; border-radius:8px; font-family:sans-serif;">
+      <div style="background:#1e293b; border-radius:8px; padding:12px; margin-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <div style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;"></div>
+          <span style="color:#f8fafc;font-weight:600;font-size:13px;">InsureAI</span>
+        </div>
+        <div style="background:#0f172a;border-radius:6px;padding:8px;margin-bottom:6px;">
+          <div style="height:6px;background:#334155;border-radius:3px;margin-bottom:4px;width:80%;"></div>
+          <div style="height:6px;background:#334155;border-radius:3px;width:60%;"></div>
+        </div>
+        <div style="background:#1e3a5f;border-radius:6px;padding:8px;border-left:3px solid #6366f1;">
+          <div style="height:5px;background:#3b82f6;border-radius:3px;margin-bottom:3px;width:90%;"></div>
+          <div style="height:5px;background:#334155;border-radius:3px;width:70%;"></div>
+        </div>
+      </div>
+      <div style="background:#1e293b;border-radius:8px;padding:10px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input style="flex:1;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px 10px;color:#94a3b8;font-size:11px;" placeholder="질문을 입력하세요..." readonly />
+          <div style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:white;font-size:12px;">→</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Modern Dark</h3>
+      <p>다크 테마, 보라/인디고 포인트. 프리미엄하고 기술적인 느낌. AI 제품다운 무드.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Clean Pro -->
+  <div class="card" data-choice="clean" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc; padding:16px; border-radius:8px; font-family:sans-serif; border:1px solid #e2e8f0;">
+      <div style="background:white; border-radius:8px; padding:12px; margin-bottom:10px; box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #f1f5f9;">
+          <div style="width:28px;height:28px;background:#2563eb;border-radius:6px;"></div>
+          <span style="color:#1e293b;font-weight:600;font-size:13px;">약관 QA Agent</span>
+          <div style="margin-left:auto;background:#eff6ff;color:#2563eb;font-size:10px;padding:2px 8px;border-radius:10px;">Beta</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:6px;padding:8px;margin-bottom:6px;">
+          <div style="height:6px;background:#e2e8f0;border-radius:3px;margin-bottom:4px;width:80%;"></div>
+          <div style="height:6px;background:#e2e8f0;border-radius:3px;width:60%;"></div>
+        </div>
+        <div style="background:#eff6ff;border-radius:6px;padding:8px;border:1px solid #bfdbfe;">
+          <div style="height:5px;background:#93c5fd;border-radius:3px;margin-bottom:3px;width:90%;"></div>
+          <div style="height:5px;background:#dbeafe;border-radius:3px;width:70%;"></div>
+        </div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;color:#64748b;font-size:11px;" placeholder="질문을 입력하세요..." readonly />
+          <div style="width:28px;height:28px;background:#2563eb;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:white;font-size:12px;">→</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Clean Professional</h3>
+      <p>화이트 베이스, 블루 포인트. 신뢰감 있고 깔끔한 기업용 느낌. 보험사 브랜드와 어울림.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Gradient Dashboard -->
+  <div class="card" data-choice="gradient" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); padding:16px; border-radius:8px; font-family:sans-serif;">
+      <div style="background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); border-radius:8px; padding:12px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.2);">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:14px;">🛡</span>
+          </div>
+          <span style="color:white;font-weight:600;font-size:13px;">InsureAI</span>
+          <div style="margin-left:auto;background:rgba(255,255,255,0.2);color:white;font-size:10px;padding:2px 8px;border-radius:10px;">AI 분석중</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.2);border-radius:6px;padding:8px;margin-bottom:6px;">
+          <div style="height:6px;background:rgba(255,255,255,0.3);border-radius:3px;margin-bottom:4px;width:80%;"></div>
+          <div style="height:6px;background:rgba(255,255,255,0.2);border-radius:3px;width:60%;"></div>
+        </div>
+        <div style="background:rgba(255,255,255,0.2);border-radius:6px;padding:8px;">
+          <div style="height:5px;background:rgba(255,255,255,0.6);border-radius:3px;margin-bottom:3px;width:90%;"></div>
+          <div style="height:5px;background:rgba(255,255,255,0.3);border-radius:3px;width:70%;"></div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.2);">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input style="flex:1;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:6px 10px;color:rgba(255,255,255,0.7);font-size:11px;" placeholder="질문을 입력하세요..." readonly />
+          <div style="width:28px;height:28px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:#764ba2;font-size:12px;">→</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Gradient Premium</h3>
+      <p>보라/인디고 그라디언트, 글래스모피즘. 세련되고 모던한 느낌. 포트폴리오에서 눈에 띔.</p>
+    </div>
+  </div>
+
+</div>

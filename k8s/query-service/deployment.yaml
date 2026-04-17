@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-service
+  template:
+    metadata:
+      labels:
+        app: query-service
+    spec:
+      containers:
+        - name: query-service
+          image: insurance-qa-agent-query-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: VOYAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: VOYAGE_API_KEY
+            - name: QDRANT_URL
+              value: "http://qdrant:6333"
+            - name: QDRANT_COLLECTION
+              value: "insurance_clauses"
+            - name: PORT
+              value: "8082"

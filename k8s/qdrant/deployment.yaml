@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qdrant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.9.2
+          ports:
+            - containerPort: 6333
+          volumeMounts:
+            - name: storage
+              mountPath: /qdrant/storage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: qdrant-pvc

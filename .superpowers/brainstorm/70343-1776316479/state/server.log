@@ -1,0 +1,6 @@
+{"type":"server-started","port":51570,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:51570","screen_dir":"/Users/yuhojin/Desktop/QA Agent/insurance-qa-agent/.superpowers/brainstorm/70343-1776316479/content","state_dir":"/Users/yuhojin/Desktop/QA Agent/insurance-qa-agent/.superpowers/brainstorm/70343-1776316479/state"}
+{"type":"screen-added","file":"/Users/yuhojin/Desktop/QA Agent/insurance-qa-agent/.superpowers/brainstorm/70343-1776316479/content/design-direction.html"}
+{"type":"screen-added","file":"/Users/yuhojin/Desktop/QA Agent/insurance-qa-agent/.superpowers/brainstorm/70343-1776316479/content/layout-style.html"}
+{"type":"screen-added","file":"/Users/yuhojin/Desktop/QA Agent/insurance-qa-agent/.superpowers/brainstorm/70343-1776316479/content/progress-style.html"}
+{"type":"screen-added","file":"/Users/yuhojin/Desktop/QA Agent/insurance-qa-agent/.superpowers/brainstorm/70343-1776316479/content/full-mockup.html"}
+{"type":"server-stopped","reason":"owner process exited"}

@@ -1,0 +1,23 @@
+# Go
+ingestion-service/vendor/
+ingestion-service/*.exe
+ingestion-service/ingestion-service
+*.test
+*.out
+
+# Node
+node_modules/
+.next/
+
+# 환경 변수
+.env
+.env.local
+*.env
+.env*.local
+
+# 빌드 결과물
+dist/
+build/
+
+# OS
+.DS_Store

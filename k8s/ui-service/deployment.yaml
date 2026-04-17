@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ui-service
+  template:
+    metadata:
+      labels:
+        app: ui-service
+    spec:
+      containers:
+        - name: ui-service
+          image: insurance-qa-agent-ui-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: QUERY_API_URL
+              value: "http://query-service:8082"
+            - name: INGESTION_API_URL
+              value: "http://ingestion-service:8081"
+            - name: NEXT_PUBLIC_SUPABASE_URL
+              value: "https://yqcxpxsniwelxcttfnph.supabase.co"
+            - name: NEXT_PUBLIC_SUPABASE_ANON_KEY
+              value: "<REDACTED_SUPABASE_ANON_KEY>"
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: SUPABASE_SERVICE_ROLE_KEY
