@@ -51,6 +51,9 @@ func (m *mockStore) Upsert(_ context.Context, _ []string, _ [][]float32, _ strin
 	return m.err
 }
 func (m *mockStore) EnsureCollection(_ context.Context, _ uint64) error { return m.err }
+func (m *mockStore) EnsurePayloadIndex(_ context.Context, _ string, _ string) error {
+	return m.err
+}
 
 type mockSupabase struct {
 	docID string

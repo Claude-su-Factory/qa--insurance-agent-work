@@ -13,6 +13,7 @@ import (
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/embedder"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/handler"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/job"
+	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/middleware"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/parser"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/store"
 	"github.com/yourusername/insurance-qa-agent/ingestion-service/internal/supabase"
@@ -39,9 +40,20 @@ func main() {
 		log.Fatal("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required")
 	}
 
+	internalToken := os.Getenv("INTERNAL_AUTH_TOKEN")
+	if internalToken == "" {
+		log.Fatal("INTERNAL_AUTH_TOKEN is required")
+	}
+
 	qdrantStore := store.New(cfg.Qdrant.BaseURL, cfg.Qdrant.Collection)
 	if err := qdrantStore.EnsureCollection(context.Background(), 1024); err != nil {
 		log.Fatalf("failed to ensure qdrant collection: %v", err)
+	}
+	if err := qdrantStore.EnsurePayloadIndex(context.Background(), "user_id", "keyword"); err != nil {
+		log.Fatalf("failed to ensure qdrant user_id index: %v", err)
+	}
+	if err := qdrantStore.EnsurePayloadIndex(context.Background(), "document_id", "keyword"); err != nil {
+		log.Fatalf("failed to ensure qdrant document_id index: %v", err)
 	}
 
 	jobStore := job.NewStore()
@@ -58,6 +70,7 @@ func main() {
 	)
 
 	app := fiber.New()
+	app.Use(middleware.InternalAuth(internalToken))
 	app.Post("/ingest", h.Handle)
 	app.Get("/ingest/status/:jobId", func(c *fiber.Ctx) error {
 		jobID := c.Params("jobId")

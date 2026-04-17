@@ -13,6 +13,7 @@ import (
 type Store interface {
 	Upsert(ctx context.Context, chunks []string, vectors [][]float32, docName string, userID string, documentID string) error
 	EnsureCollection(ctx context.Context, vectorSize uint64) error
+	EnsurePayloadIndex(ctx context.Context, field string, schema string) error
 }
 
 type QdrantStore struct {
@@ -66,6 +67,32 @@ func (q *QdrantStore) Upsert(ctx context.Context, chunks []string, vectors [][]f
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("qdrant upsert error: status %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func (q *QdrantStore) EnsurePayloadIndex(ctx context.Context, field string, schema string) error {
+	url := fmt.Sprintf("%s/collections/%s/index", q.baseURL, q.collection)
+	body, _ := json.Marshal(map[string]any{
+		"field_name":   field,
+		"field_schema": schema,
+	})
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// 이미 존재하는 인덱스는 200 또는 409 — 둘 다 정상 취급
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusConflict {
+		return fmt.Errorf("qdrant create index error: status %d", resp.StatusCode)
 	}
 	return nil
 }
