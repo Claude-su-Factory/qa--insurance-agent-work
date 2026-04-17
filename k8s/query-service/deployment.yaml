@@ -35,3 +35,23 @@ spec:
               value: "insurance_clauses"
             - name: PORT
               value: "8082"
+            - name: INTERNAL_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: INTERNAL_AUTH_TOKEN
+            - name: LANGFUSE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: LANGFUSE_SECRET_KEY
+            - name: LANGFUSE_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: LANGFUSE_PUBLIC_KEY
+            - name: LANGFUSE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: LANGFUSE_HOST

@@ -34,3 +34,8 @@ spec:
                 secretKeyRef:
                   name: supabase-secrets
                   key: SUPABASE_SERVICE_ROLE_KEY
+            - name: INTERNAL_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: INTERNAL_AUTH_TOKEN
