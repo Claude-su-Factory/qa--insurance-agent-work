@@ -81,7 +81,7 @@ export default function LeftPanel() {
               createdAt: d.created_at,
             }))
           );
-          const newDoc = docs.find((d: any) => d.filename === ingesting.filename);
+          const newDoc = docs.find((d: { filename: string }) => d.filename === ingesting.filename);
           if (newDoc) {
             selectDocument({
               id: newDoc.id,

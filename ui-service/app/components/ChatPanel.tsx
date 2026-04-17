@@ -11,7 +11,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function ChatPanel() {
-  const { messages, setMessages, setCitations, selectedDocument, loadingMessages } = useApp();
+  const { messages, setMessages, setCitations, selectedDocument } = useApp();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
