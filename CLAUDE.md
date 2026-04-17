@@ -46,69 +46,18 @@ kubectl port-forward svc/ui-service 3000:3000 &
 
 ## 코드 변경 후 배포 규칙 (MANDATORY)
 
-코드 변경이 완료되면 **반드시** 아래 순서를 Claude가 직접 수행한다. 사용자에게 인프라 작업을 요청하지 않는다.
-
-### 0. 시크릿 최신화 (항상 먼저 실행)
-
-시크릿은 `.env` 파일을 원천으로 자동 관리되므로, 배포 전 반드시 실행합니다.
+코드 변경이 완료되면 Claude가 직접 수행한다. 사용자에게 인프라 작업을 요청하지 않는다.
 
 ```bash
-bash scripts/apply-secrets.sh
+# 전체 배포 (시크릿 → 빌드 → 롤아웃 → 포트포워드 → 헬스체크)
+bash scripts/deploy.sh
+
+# 특정 서비스만 빌드 후 배포
+bash scripts/deploy.sh ui-service
+bash scripts/deploy.sh ingestion-service query-service
 ```
 
-### 1. minikube Docker 환경 설정
-
-```bash
-eval $(minikube docker-env)
-```
-
-minikube가 미실행 상태면 먼저 시작한다:
-
-```bash
-minikube start --driver=docker
-eval $(minikube docker-env)
-```
-
-### 2. Docker 이미지 재빌드
-
-변경된 서비스만 재빌드하거나 전체 빌드:
-
-```bash
-# 전체 재빌드
-docker compose build
-
-# 특정 서비스만
-docker compose build ingestion-service
-docker compose build ui-service
-```
-
-### 3. K8s 롤아웃 재시작
-
-변경된 서비스에 대해 실행:
-
-```bash
-kubectl rollout restart deployment/<service-name>
-kubectl rollout status deployment/<service-name> --timeout=60s
-```
-
-### 4. 헬스체크로 정상 배포 확인
-
-포트포워드 후 응답 확인:
-
-```bash
-kubectl port-forward svc/ingestion-service 8081:8081 &>/tmp/pf-ingestion.log &
-kubectl port-forward svc/ui-service 3000:3000 &>/tmp/pf-ui.log &
-sleep 3
-curl -s http://localhost:8081/health
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
-```
-
-### 적용 범위
-
-- ingestion-service 변경 → ingestion-service 재빌드 + 롤아웃
-- query-service 변경 → query-service 재빌드 + 롤아웃
-- ui-service 변경 → ui-service 재빌드 + 롤아웃
-- 여러 서비스 동시 변경 → 해당 서비스 모두 재빌드 + 롤아웃
+스크립트가 `.env` 파일에서 시크릿 적용 → Docker 빌드 → K8s 롤아웃 → 포트포워드 → 헬스체크를 모두 처리한다. K8s secret yaml은 존재하지 않으며, 시크릿은 오직 `.env` 파일 → `apply-secrets.sh`를 통해서만 생성된다.
 
 ## 핵심 설계 결정
 
