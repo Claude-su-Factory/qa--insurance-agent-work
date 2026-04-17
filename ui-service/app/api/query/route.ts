@@ -33,23 +33,21 @@ export async function POST(req: NextRequest) {
 
   const data = await res.json();
 
-  // Supabase에 user 질문 + assistant 답변 병렬 저장
-  await Promise.all([
-    supabase.from("messages").insert({
-      document_id: documentId,
-      user_id: user.id,
-      role: "user",
-      content: question,
-      citations: [],
-    }),
-    supabase.from("messages").insert({
-      document_id: documentId,
-      user_id: user.id,
-      role: "assistant",
-      content: data.answer,
-      citations: data.citations ?? [],
-    }),
-  ]);
+  // Supabase에 user 질문 → assistant 답변 순차 저장 (created_at 순서 보장)
+  await supabase.from("messages").insert({
+    document_id: documentId,
+    user_id: user.id,
+    role: "user",
+    content: question,
+    citations: [],
+  });
+  await supabase.from("messages").insert({
+    document_id: documentId,
+    user_id: user.id,
+    role: "assistant",
+    content: data.answer,
+    citations: data.citations ?? [],
+  });
 
   return NextResponse.json(data);
 }
