@@ -126,6 +126,7 @@ async function callQueryService(
     throw new Error("stream ended without completion");
   } finally {
     clearTimeout(timeout);
+    ac.abort();
   }
 }
 
