@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "../../../../lib/supabase/server";
-import { getJobDocumentId, markAssistantSaved } from "../../../../lib/queryJobStore";
+import {
+  getJobDocumentId,
+  markAssistantSaved,
+  resetAssistantSaved,
+} from "../../../../lib/queryJobStore";
 
 export async function GET(
   req: NextRequest,
@@ -56,24 +60,31 @@ export async function GET(
         const payload = dataLine.slice(6);
         if (payload === "ok" || payload === "error") continue;
 
+        let data: { status?: string; result?: { answer: string; citations?: unknown[] } };
         try {
-          const data = JSON.parse(payload);
-          if (
-            data.status === "completed" &&
-            data.result &&
-            documentId &&
-            markAssistantSaved(jobId)
-          ) {
-            await supabase.from("messages").insert({
-              document_id: documentId,
-              user_id: user.id,
-              role: "assistant",
-              content: data.result.answer,
-              citations: data.result.citations ?? [],
-            });
-          }
+          data = JSON.parse(payload);
         } catch (err) {
-          console.error(`[stream-route] ${jobId}: parse/save failed:`, err);
+          console.error(`[stream-route] ${jobId}: parse failed:`, err);
+          continue;
+        }
+
+        if (
+          data.status === "completed" &&
+          data.result &&
+          documentId &&
+          markAssistantSaved(jobId)
+        ) {
+          const { error } = await supabase.from("messages").insert({
+            document_id: documentId,
+            user_id: user.id,
+            role: "assistant",
+            content: data.result.answer,
+            citations: data.result.citations ?? [],
+          });
+          if (error) {
+            resetAssistantSaved(jobId);
+            console.error(`[stream-route] ${jobId}: insert failed:`, error);
+          }
         }
       }
     },
