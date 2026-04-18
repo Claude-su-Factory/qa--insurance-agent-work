@@ -197,7 +197,7 @@ ui-service → 백엔드 서비스 호출 시 `X-Internal-Token` 헤더 동봉.
 **When:** 2026-04-17
 **Why:**
 - "약관 분석 중..." 정적 스피너는 15초 대기 중 불안 유발
-- classifier 완료 후 totalSteps가 결정되므로, 그 전까지는 indeterminate 바로 표시
+- supervisor(구 classifier) 완료 후 totalSteps가 결정되므로, 그 전까지는 indeterminate 바로 표시
 - 재시도(rewriter→retriever 루프)에도 progressIndex는 역주행하지 않음 (Max 유지), label만 변경
 **영향 파일:** `query-service/src/jobs/query-jobs.ts`, `query-service/src/graph/stream.ts`, `query-service/src/jobs/step-labels.ts`, `ui-service/app/components/QueryProgress.tsx`, `ChatPanel.tsx`
 
