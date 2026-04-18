@@ -1,12 +1,10 @@
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { AgentState } from "./state.js";
 import { supervise } from "./nodes/supervisor.js";
-import { createRetriever } from "./nodes/retriever.js";
-import { toolsAgent } from "./nodes/tools-agent.js";
-import { generateAnswer } from "./nodes/answer-generator.js";
-import { formatCitations } from "./nodes/citation-formatter.js";
 import { grader } from "./nodes/grader.js";
 import { queryRewriter } from "./nodes/query-rewriter.js";
+import { buildRetrievalTeam } from "./subgraphs/retrieval-team.js";
+import { buildAnswerTeam } from "./subgraphs/answer-team.js";
 import type { VoyageClient } from "../clients/voyage.js";
 import type { InsuranceQdrantClient } from "../clients/qdrant.js";
 
@@ -17,46 +15,33 @@ export function buildGraph(
   voyageClient: VoyageClient,
   qdrantClient: InsuranceQdrantClient
 ) {
-  const retrieve = createRetriever(voyageClient, qdrantClient);
+  const retrievalTeam = buildRetrievalTeam(voyageClient, qdrantClient);
+  const answerTeam = buildAnswerTeam();
 
   const graph = new StateGraph(AgentState)
     .addNode("supervisor", supervise)
-    .addNode("retriever", retrieve)
-    .addNode("tools_agent", toolsAgent)
-    .addNode("answer_generator", generateAnswer)
+    .addNode("retrieval_team", retrievalTeam)
+    .addNode("answer_team", answerTeam)
     .addNode("grader", grader)
     .addNode("query_rewriter", queryRewriter)
-    .addNode("citation_formatter", formatCitations)
     .addEdge(START, "supervisor")
-    .addEdge("supervisor", "retriever")
-    .addConditionalEdges(
-      "retriever",
-      (state) =>
-        state.questionType === "claim_eligibility"
-          ? "tools_agent"
-          : "answer_generator",
-      {
-        tools_agent: "tools_agent",
-        answer_generator: "answer_generator",
-      }
-    )
-    .addEdge("tools_agent", "answer_generator")
-    .addEdge("answer_generator", "grader")
+    .addEdge("supervisor", "retrieval_team")
+    .addEdge("retrieval_team", "answer_team")
+    .addEdge("answer_team", "grader")
     .addConditionalEdges(
       "grader",
       (state) => {
         if (state.gradingScore < PASSING_SCORE && state.retryCount < MAX_RETRIES) {
           return "query_rewriter";
         }
-        return "citation_formatter";
+        return END;
       },
       {
         query_rewriter: "query_rewriter",
-        citation_formatter: "citation_formatter",
+        [END]: END,
       }
     )
-    .addEdge("query_rewriter", "retriever")
-    .addEdge("citation_formatter", END);
+    .addEdge("query_rewriter", "retrieval_team");
 
   return graph.compile();
 }
