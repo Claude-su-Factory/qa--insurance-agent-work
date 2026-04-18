@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { useApp } from "../context/AppContext";
+import QueryProgress from "./QueryProgress";
 
 const SUGGESTED_QUESTIONS = [
   "💊 면책기간이 언제 시작되나요?",
@@ -10,58 +11,186 @@ const SUGGESTED_QUESTIONS = [
   "💰 보험금 청구 조건을 알려주세요",
 ];
 
+
+interface ProgressState {
+  stepLabel: string;
+  progressIndex: number;
+  totalSteps: number | null;
+}
+
 export default function ChatPanel() {
   const { messages, setMessages, setCitations, selectedDocument } = useApp();
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ProgressState>({
+    stepLabel: "대기 중",
+    progressIndex: 0,
+    totalSteps: null,
+  });
+  const [toast, setToast] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const isInFlight = activeJobId !== null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, isInFlight]);
 
-  const sendMessage = async (question: string) => {
-    if (!question.trim() || loading) return;
+  // Toast auto-hide
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: question, timestamp: new Date() },
-    ]);
-    setInput("");
-    setLoading(true);
+  // SSE 구독
+  useEffect(() => {
+    if (!activeJobId) return;
 
-    try {
-      const res = await fetch("/api/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, documentId: selectedDocument!.id }),
+    const es = new EventSource(`/api/query/stream/${activeJobId}`);
+    const cleanCloseRef = { current: false };
+    const timeout = setTimeout(() => {
+      cleanCloseRef.current = true;
+      es.close();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "응답이 지연되고 있어요. 잠시 후 다시 시도해주세요.",
+          timestamp: new Date(),
+        },
+      ]);
+      setActiveJobId(null);
+    }, 60_000);
+
+    es.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.status === "completed" && data.result) {
+        const citations = data.result.citations ?? [];
+        cleanCloseRef.current = true;
+        clearTimeout(timeout);
+        es.close();
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.result.answer ?? "답변을 받을 수 없습니다.",
+            citations,
+            timestamp: new Date(),
+          },
+        ]);
+        setCitations(citations);
+        setActiveJobId(null);
+        return;
+      }
+
+      if (data.status === "failed") {
+        cleanCloseRef.current = true;
+        clearTimeout(timeout);
+        es.close();
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+            timestamp: new Date(),
+          },
+        ]);
+        setActiveJobId(null);
+        return;
+      }
+
+      setProgress({
+        stepLabel: data.stepLabel ?? "처리 중",
+        progressIndex: data.progressIndex ?? 0,
+        totalSteps: data.totalSteps ?? null,
       });
-      const data = await res.json();
-      const citations = data.citations ?? [];
+    };
+
+    es.addEventListener("done", () => {
+      cleanCloseRef.current = true;
+      clearTimeout(timeout);
+      es.close();
+    });
+
+    es.onerror = () => {
+      // 클린 close 후에도 onerror가 fire될 수 있음 → ref로 구분
+      if (cleanCloseRef.current) return;
+      cleanCloseRef.current = true;
+      clearTimeout(timeout);
+      es.close();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "연결이 끊어졌습니다. 다시 시도해주세요.",
+          timestamp: new Date(),
+        },
+      ]);
+      setActiveJobId(null);
+    };
+
+    return () => {
+      cleanCloseRef.current = true;
+      clearTimeout(timeout);
+      es.close();
+    };
+  }, [activeJobId, setMessages, setCitations]);
+
+  const sendMessage = useCallback(
+    async (question: string) => {
+      if (!question.trim() || isInFlight || !selectedDocument) return;
 
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: data.answer ?? "답변을 받을 수 없습니다.",
-          citations,
-          timestamp: new Date(),
-        },
+        { role: "user", content: question, timestamp: new Date() },
       ]);
-      setCitations(citations);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-          timestamp: new Date(),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setInput("");
+      setProgress({ stepLabel: "대기 중", progressIndex: 0, totalSteps: null });
+
+      try {
+        const res = await fetch("/api/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, documentId: selectedDocument.id }),
+        });
+
+        if (res.status === 409) {
+          const { jobId } = await res.json();
+          setToast("이전 질의가 아직 처리 중입니다");
+          setActiveJobId(jobId);
+          return;
+        }
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: errData.error ?? "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+              timestamp: new Date(),
+            },
+          ]);
+          return;
+        }
+
+        const { jobId } = await res.json();
+        setActiveJobId(jobId);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "네트워크 오류가 발생했습니다.",
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    },
+    [isInFlight, selectedDocument, setMessages]
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +210,14 @@ export default function ChatPanel() {
   }
 
   return (
-    <div className="flex-1 bg-white flex flex-col min-w-0">
+    <div className="flex-1 bg-white flex flex-col min-w-0 relative">
+      {/* Toast */}
+      {toast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg">
+          {toast}
+        </div>
+      )}
+
       {/* 메시지 영역 */}
       <div className="flex-1 overflow-y-auto p-5 space-y-4">
         {messages.length === 0 ? (
@@ -98,7 +234,8 @@ export default function ChatPanel() {
                 <button
                   key={q}
                   onClick={() => sendMessage(q)}
-                  className="text-[11px] px-3 py-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 hover:text-blue-600 rounded-full text-slate-600 transition-all"
+                  disabled={isInFlight}
+                  className="text-[11px] px-3 py-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 hover:text-blue-600 rounded-full text-slate-600 transition-all disabled:opacity-40"
                 >
                   {q}
                 </button>
@@ -146,22 +283,13 @@ export default function ChatPanel() {
           ))
         )}
 
-        {/* 분석 중 애니메이션 */}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
-              <span className="text-[12px] text-slate-500">약관 분석 중</span>
-              <div className="flex gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+        {/* 진행 상태 표시 */}
+        {isInFlight && (
+          <QueryProgress
+            stepLabel={progress.stepLabel}
+            progressIndex={progress.progressIndex}
+            totalSteps={progress.totalSteps}
+          />
         )}
         <div ref={bottomRef} />
       </div>
@@ -173,13 +301,13 @@ export default function ChatPanel() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="약관에 대해 질문해보세요 (예: 면책기간이 언제 시작되나요?)"
-              disabled={loading}
+              placeholder={isInFlight ? "답변을 받는 중입니다..." : "약관에 대해 질문해보세요"}
+              disabled={isInFlight}
               className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none disabled:opacity-50"
             />
             <button
               type="submit"
-              disabled={loading || !input.trim()}
+              disabled={isInFlight || !input.trim()}
               className="w-8 h-8 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
             >
               <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
@@ -193,7 +321,7 @@ export default function ChatPanel() {
             <button
               key={q}
               onClick={() => sendMessage(q)}
-              disabled={loading}
+              disabled={isInFlight}
               className="text-[10px] px-2.5 py-1 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 hover:text-blue-600 rounded-full text-slate-500 transition-all disabled:opacity-40"
             >
               {q}
