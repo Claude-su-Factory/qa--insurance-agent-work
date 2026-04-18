@@ -1,6 +1,6 @@
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { AgentState } from "./state.js";
-import { classifyQuestion } from "./nodes/classifier.js";
+import { supervise } from "./nodes/supervisor.js";
 import { createRetriever } from "./nodes/retriever.js";
 import { toolsAgent } from "./nodes/tools-agent.js";
 import { generateAnswer } from "./nodes/answer-generator.js";
@@ -20,15 +20,15 @@ export function buildGraph(
   const retrieve = createRetriever(voyageClient, qdrantClient);
 
   const graph = new StateGraph(AgentState)
-    .addNode("question_classifier", classifyQuestion)
+    .addNode("supervisor", supervise)
     .addNode("retriever", retrieve)
     .addNode("tools_agent", toolsAgent)
     .addNode("answer_generator", generateAnswer)
     .addNode("grader", grader)
     .addNode("query_rewriter", queryRewriter)
     .addNode("citation_formatter", formatCitations)
-    .addEdge(START, "question_classifier")
-    .addEdge("question_classifier", "retriever")
+    .addEdge(START, "supervisor")
+    .addEdge("supervisor", "retriever")
     .addConditionalEdges(
       "retriever",
       (state) =>

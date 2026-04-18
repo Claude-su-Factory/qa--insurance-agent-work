@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import type { QuestionType } from "../graph/state.js";
 
+// Supervisor 노드의 questionType 파싱 로직 검증.
+// (parseQuestionType는 supervisor.ts 내부 헬퍼 — 테스트에서는 동일 로직을 inline 재현)
+
 function parseQuestionType(text: string): QuestionType {
   const cleaned = text.trim().toLowerCase();
   if (cleaned === "coverage") return "coverage";

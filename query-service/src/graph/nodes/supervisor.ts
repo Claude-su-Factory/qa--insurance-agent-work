@@ -8,7 +8,15 @@ function parseQuestionType(text: string): QuestionType {
   return "general";
 }
 
-export async function classifyQuestion(
+/**
+ * Supervisor 노드 — 질문 유형을 분류하여 하위 팀(retrieval_team, answer_team)의
+ * 내부 경로를 결정하도록 state에 questionType을 기록한다.
+ *
+ * Hierarchical Team 패턴에서 team router 역할. 매 노드마다 LLM으로 라우팅하는
+ * "full Supervisor" 대신 single-shot 분류로 하위 팀의 conditional edge가 활용하는
+ * 지시만 남긴다 (포트폴리오 축소판).
+ */
+export async function supervise(
   state: typeof AgentState.State
 ): Promise<Partial<typeof AgentState.State>> {
   const anthropic = new Anthropic();
