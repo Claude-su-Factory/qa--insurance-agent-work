@@ -1,7 +1,7 @@
 # 프로젝트 로드맵
 
 **마지막 업데이트:** 2026-04-18
-**현재 추천 다음 작업:** Agent 고도화 (Evaluation baseline 확인 후 옵션 A/B/C 중 선택)
+**현재 추천 다음 작업:** Railway 클라우드 실배포
 
 ---
 
@@ -13,7 +13,7 @@
 
 | JD 항목 | 상태 | 커버하는 기능 |
 |---|---|---|
-| Agent 기반 제품 설계 및 개발 | ✅ | LangGraph self-correction (grader + rewriter). **Agent 고도화로 심화 예정** |
+| Agent 기반 제품 설계 및 개발 | ✅ | LangGraph self-correction + Supervisor/Hierarchical Team (retrieval_team, answer_team subgraph, 2026-04-18) |
 | Agentic 아키텍처 전략적 활용 | ✅ | 조건부 엣지, 멀티 노드 구성, 툴 에이전트 |
 | 기존 AI 서비스, LLMOps 운영 고도화 | ⚠️ 부분 | Langfuse 트레이싱은 있으나 자동 평가 미흡. **Evaluation 파이프라인 예정** |
 
@@ -78,27 +78,22 @@
 
 ---
 
-### 2. Agent 고도화
+### 2. Agent 고도화 ✅ 완료 (축소 Supervisor, 2026-04-18)
 **JD 매핑:** Agent 기반 제품 설계 + Agentic 아키텍처 전략적 활용 (주요 업무)
 
-현재 Agent는 단일 그래프. 더 에이전틱하게 확장한다. 3가지 옵션 중 하나 선택.
+**최종 구조 (축소 Supervisor + Hierarchical Team)**
+- `supervisor` 노드 (기존 classifier 확장) — questionType 분류로 하위 팀 경로 지시
+- `retrieval_team` subgraph — retriever + (cond) tools_agent
+- `answer_team` subgraph — answer_generator + citation_formatter
+- self-correction (grader + query_rewriter)은 top-level 유지
+- `graph.stream({ streamMode: "updates", subgraphs: true })`로 nested 진행 상태 push
 
-**옵션 A — 멀티 에이전트 (Supervisor 패턴)**
-- Supervisor 에이전트가 하위 에이전트(검색 / 법률 해석 / 요약)에게 작업 분배
-- LangGraph Hierarchical Team 패턴
-- "Agentic 아키텍처 전략적 활용" 문구에 가장 잘 맞음
+**미반영 옵션 (필요 시 별도 스펙):**
+- 옵션 B: 장기 메모리 (`user_memory` 테이블 + memory 노드)
+- 옵션 C: 도구 확장 (약관 비교 / 보험료 계산 / 용어 사전)
+- 옵션 A 강화판: Supervisor가 매 노드마다 LLM 호출로 다음 에이전트 동적 결정
 
-**옵션 B — 장기 메모리 (Long-term Memory)**
-- 사용자 프로필 + 과거 질의 패턴 기억 → 답변 개인화
-- Supabase `user_memory` 테이블 + Agent memory 노드
-
-**옵션 C — 도구 확장**
-- 약관 간 비교, 보험료 계산, 용어 사전 등 툴 추가
-- tools_agent 역할 확장
-
-**선정 시점:** Evaluation 파이프라인 완료 후 품질 baseline 확인하며 결정
-
-**예상 기간:** 5-7일
+**상세 스펙:** `docs/superpowers/specs/2026-04-18-supervisor-pattern.md`
 
 ---
 
@@ -154,6 +149,6 @@ BM25 + dense vector 결합, RRF 기반. 검색 품질 개선이 명확하면 진
 
 1. 하네스 파일화 ✅
 2. 자동 Evaluation 파이프라인 ✅
-3. **현재 다음**: Agent 고도화 (Evaluation baseline 확인 후 옵션 A/B/C 중 선택)
-4. model-service + Railway 배포 (묶어서 진행)
-5. Tier 2 → Tier 3 선택
+3. Agent 고도화 ✅ 완료 (축소 Supervisor, 2026-04-18)
+4. **현재 다음**: Railway 클라우드 실배포
+5. model-service + Tier 2/Tier 3 선택

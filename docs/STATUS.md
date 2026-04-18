@@ -1,7 +1,7 @@
 # 프로젝트 구현 상태
 
 **마지막 업데이트:** 2026-04-18
-**현재 추천 다음 작업:** Agent 고도화 (Tier 1, Evaluation 파이프라인 baseline 확인 후 옵션 A/B/C 중 선택)
+**현재 추천 다음 작업:** Railway 클라우드 실배포 (JD 클라우드 요구사항 충족)
 
 ---
 
@@ -59,9 +59,9 @@
 Tier 1 (최우선)
 - [x] 자동 Evaluation 파이프라인 (백그라운드 자동화, Supabase 기반, node-cron 스케줄)
 - [x] 쿼리 진행 상태 UX + 중복 요청 방지 (비동기 + SSE, 단계별 진행바) (SSE 전환 완료)
-- [ ] Agent 고도화 (멀티 에이전트 / 장기 메모리 / 도구 확장 중 택1) ← **다음 작업**
+- [x] Agent 고도화 (축소 Supervisor 패턴 적용, 2026-04-18)
 - [ ] `model-service` (Phi-3 CPU 양자화 자체 서빙)
-- [ ] Railway 클라우드 실배포
+- [ ] Railway 클라우드 실배포 ← **다음 작업**
 
 Tier 2 (LLMOps 심화)
 - [ ] 프롬프트 버전 관리 + A/B (Langfuse Prompts)
@@ -87,6 +87,7 @@ Tier 3 (선택적 차별화)
 
 | 날짜 | 변경 | 관련 스펙 |
 |---|---|---|
+| 2026-04-18 | Supervisor 패턴 + Hierarchical Team (retrieval_team, answer_team subgraph) | `2026-04-18-supervisor-pattern.md` |
 | 2026-04-18 | 쿼리 진행 상태 SSE 전환 (폴링 제거, EventSource + EventEmitter pub/sub, eval runner SSE 구독) | `2026-04-17-query-sse.md` |
 | 2026-04-17 | 쿼리 진행 상태 UX + 중복 요청 방지 (POST 비동기 + /status 폴링, QueryProgress 컴포넌트, 409 in-flight) | `2026-04-17-query-progress-ux.md` |
 | 2026-04-17 | Evaluation 파이프라인 완전 자동화 (Supabase 4테이블, node-cron 주1회, snapshot side-effect, auto-promote) | `2026-04-17-eval-background-automation.md` |
