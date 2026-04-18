@@ -41,7 +41,7 @@ async function executeQueryJob(job: QueryJob, trace: TraceHandle | null): Promis
       graph,
       { question: job.question, userId: job.userId, documentId: job.documentId },
       ({ nodeName, state }) => {
-        // classifier가 먼저 돌면 questionType 결정 → totalSteps 확정
+        // supervisor가 먼저 돌면 questionType 결정 → totalSteps 확정
         const questionType: QuestionType | null =
           (state.questionType as QuestionType | undefined) ?? null;
         const retryCount = (state.retryCount as number | undefined) ?? 0;
