@@ -64,7 +64,13 @@ export default function ChatPanel() {
     }, 60_000);
 
     es.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (err) {
+        console.error("[chat] sse parse error:", err);
+        return;
+      }
 
       if (data.status === "completed" && data.result) {
         const citations = data.result.citations ?? [];
@@ -112,6 +118,7 @@ export default function ChatPanel() {
       cleanCloseRef.current = true;
       clearTimeout(timeout);
       es.close();
+      setActiveJobId(null);
     });
 
     es.onerror = () => {
