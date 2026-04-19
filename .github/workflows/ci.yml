@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ingestion-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ingestion-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+          cache-dependency-path: ingestion-service/go.sum
+      - run: go mod download
+      - run: go test ./... -v
+
+  query-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./query-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: query-service/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+
+  ui-build-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ui-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ui-service/package-lock.json
+      - run: npm ci
+      - run: npm run build -- --no-lint
+        env:
+          # build-time env 는 placeholder 로 충분. 실제 값은 Railway build ARG 로 주입.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_TELEMETRY_DISABLED: '1'
+
+  docker-build-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ingestion-service, query-service, ui-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build ${{ matrix.service }} Dockerfile
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: false
+          tags: ${{ matrix.service }}:ci
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
