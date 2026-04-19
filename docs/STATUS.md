@@ -1,7 +1,7 @@
 # 프로젝트 구현 상태
 
 **마지막 업데이트:** 2026-04-19
-**현재 추천 다음 작업:** `model-service` (Phi-3 CPU 양자화 자체 서빙) — JD "AI 모델 서빙 프레임워크" 갭 보완
+**현재 추천 다음 작업:** 미정 — `model-service` 스코프 제외(2026-04-19). Tier 2 진행 or 프로젝트 마감 선택 대기
 
 ---
 
@@ -61,7 +61,7 @@ Tier 1 (최우선)
 - [x] 쿼리 진행 상태 UX + 중복 요청 방지 (비동기 + SSE, 단계별 진행바) (SSE 전환 완료)
 - [x] Agent 고도화 (축소 Supervisor 패턴 적용, 2026-04-18)
 - [x] Railway 클라우드 실배포 + CI/CD 자동화 (2026-04-19)
-- [ ] `model-service` (Phi-3 CPU 양자화 자체 서빙) ← **다음 작업**
+- ~~`model-service` (Phi-3 CPU 양자화 자체 서빙)~~ — 스코프 제외 (2026-04-19)
 
 Tier 2 (LLMOps 심화)
 - [ ] 프롬프트 버전 관리 + A/B (Langfuse Prompts)
@@ -87,6 +87,7 @@ Tier 3 (선택적 차별화)
 
 | 날짜 | 변경 | 관련 스펙 |
 |---|---|---|
+| 2026-04-19 | `model-service` (Phi-3 CPU 양자화) 스코프 제외 확정. JD "AI 모델 서빙 / 경량화" 항목 ❌ 유지. | — |
 | 2026-04-19 | Railway 실배포 + CI/CD 자동화 (3 service Hobby, Doppler ↔ Railway sync, GitHub Actions 6 job, main push → auto-deploy, Qdrant Cloud + Langfuse Cloud 활성). Live: https://ui-service-production-4cab.up.railway.app | `2026-04-18-railway-deployment.md` |
 | 2026-04-18 | Supervisor 패턴 + Hierarchical Team (retrieval_team, answer_team subgraph) | `2026-04-18-supervisor-pattern.md` |
 | 2026-04-18 | 쿼리 진행 상태 SSE 전환 (폴링 제거, EventSource + EventEmitter pub/sub, eval runner SSE 구독) | `2026-04-17-query-sse.md` |

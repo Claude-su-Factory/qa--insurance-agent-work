@@ -1,7 +1,7 @@
 # 프로젝트 로드맵
 
 **마지막 업데이트:** 2026-04-19
-**현재 추천 다음 작업:** `model-service` (Phi-3 CPU 양자화 자체 서빙)
+**현재 추천 다음 작업:** 미정 — `model-service` 스코프 제외(2026-04-19)
 
 ---
 
@@ -24,7 +24,7 @@
 | 백엔드 (Python, Java, Go, Node.js) | ✅ | Go(Fiber) + TS(Hono) 폴리글랏 |
 | DB 다양성 (MySQL, Redis, Elasticsearch 등) | ⚠️ | Qdrant + Supabase(Postgres). 스케일 인프라는 YAGNI 기준으로 추가 안 함 |
 | AI 서비스 설계→개발→운영 전 과정 | ✅ | 설계 문서부터 배포 스크립트까지 |
-| AI 모델 서빙 프레임워크 (vllm, sglang, TensorRT-LLM) | ❌ | 외부 API만. **model-service 예정 (CPU 양자화)** |
+| AI 모델 서빙 프레임워크 (vllm, sglang, TensorRT-LLM) | ❌ | 외부 API만 (스코프 제외, 2026-04-19) |
 | AI Agent 프레임워크 (LangChain, LangGraph) | ✅ | LangGraph self-correction |
 | 클라우드 (AWS, Azure) | ✅ | Railway Hobby 실배포 + Doppler 시크릿 sync + GitHub Actions CI/CD (main push → auto-deploy, 2026-04-19) |
 | Docker/K8s/MSA | ✅ | 구축 완료 |
@@ -36,7 +36,7 @@
 |---|---|---|
 | 시스템 아키텍처 설계 및 구축 | ✅ | MSA 분리 + 명시적 설계 문서(ARCHITECTURE.md) |
 | 금융업 설계/개발/운영 | ✅ | 보험 도메인 선택 |
-| AI 모델 경량화 | ❌ | **model-service에서 CPU 양자화로 커버 예정** |
+| AI 모델 경량화 | ❌ | 스코프 제외 (2026-04-19) |
 
 ---
 
@@ -48,6 +48,7 @@
 - ~~Redis (캐싱, 레이트 리미팅, job 상태)~~
 - ~~메시지 큐 (Redis Streams / Kafka)~~
 - ~~k6 부하 테스트~~
+- ~~`model-service` (Phi-3 CPU 양자화 자체 서빙)~~ — 2026-04-19 스코프 제외. JD "AI 모델 서빙 / 경량화" 항목 ❌ 유지 수용.
 
 ---
 
@@ -97,18 +98,9 @@
 
 ---
 
-### 3. model-service (CPU 양자화 자체 서빙)
-**JD 매핑:** AI 모델 서빙 프레임워크 (필수), AI 모델 경량화 (우대)
+### 3. ~~model-service (CPU 양자화 자체 서빙)~~ — 스코프 제외 (2026-04-19)
 
-**산출물**
-- Phi-3-mini Q4_K_M GGUF → grader 교체
-- bge-small-en-v1.5 → 임베딩 교체 (선택)
-- 런타임: llama.cpp 또는 Ollama
-- Haiku vs Phi-3 품질/비용 비교 표
-
-**예상 기간:** 5-7일
-
-**제약:** Railway CPU 환경 전제 (GPU 없음)
+JD "AI 모델 서빙 프레임워크 (필수)" + "AI 모델 경량화 (우대)" 항목은 ❌ 상태로 수용. 포트폴리오 ROI 판단으로 드롭.
 
 ---
 
@@ -151,5 +143,5 @@ BM25 + dense vector 결합, RRF 기반. 검색 품질 개선이 명확하면 진
 2. 자동 Evaluation 파이프라인 ✅
 3. Agent 고도화 ✅ 완료 (축소 Supervisor, 2026-04-18)
 4. Railway 클라우드 실배포 + CI/CD 자동화 ✅ 완료 (2026-04-19)
-5. **현재 다음**: model-service (Phi-3 CPU 양자화)
-6. Tier 2/Tier 3 선택
+5. ~~model-service (Phi-3 CPU 양자화)~~ — 스코프 제외 (2026-04-19)
+6. Tier 2/Tier 3 선택 또는 프로젝트 마감

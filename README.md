@@ -46,9 +46,10 @@ docker compose up -d
 
 ## ⏳ 예정 (JD 갭 보완)
 
-- AI 모델 경량화 & 자체 서빙: Phi-3-mini Q4_K_M GGUF → grader 교체 (llama.cpp/Ollama, CPU 양자화)
 - 프롬프트 버전 관리 + A/B (Langfuse Prompts)
 - 비용/품질 대시보드 (Langfuse Dashboard)
+
+> `model-service` (Phi-3 CPU 양자화 자체 서빙)은 2026-04-19 스코프 제외 확정.
 
 ## 데이터베이스 스키마 (Supabase Postgres)
 
