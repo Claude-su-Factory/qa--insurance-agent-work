@@ -28,6 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
+	config.ApplyEnvOverrides(cfg)
 
 	voyageAPIKey := os.Getenv("VOYAGE_API_KEY")
 	if voyageAPIKey == "" {
