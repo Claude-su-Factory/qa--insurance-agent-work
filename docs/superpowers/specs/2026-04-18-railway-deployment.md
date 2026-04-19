@@ -607,4 +607,8 @@ Railway 자동 health check
 - **M2 결정:** 로컬 개발은 기존 `.env.local` 방식 유지 (외부 서비스 의존성을 로컬까지 끌고 오지 않기 위함). Doppler는 프로덕션 전용.
   - §6.1: `dev_*` config 3개 제거, 3 prd_* config만 유지
   - §6.4: 로컬 개발 설명 재작성 — Doppler CLI 불필요. `.env.production.example` 이 암묵적 동기화 체크리스트 역할
-- **M1 결정 대기:** 보안 스캔 grep 패턴 확장 여부는 아직 사용자 응답 대기.
+- **M1 결정:** §4.1 보안 스캔 grep 패턴은 현재 수준 유지 (`sk-ant-|pcsk_|voyage_|SUPABASE_SERVICE_ROLE_KEY=`). 이유: 현재 프로젝트 의존 서비스에 딱 맞춰 false positive 최소화. 새 서비스 추가 시에만 패턴 확장 검토.
+
+### 2026-04-19 스펙 확정
+
+사용자 리뷰 완료. M1, M2 반영 후 스펙 finalize. 구현 계획 작성 단계로 진행.
