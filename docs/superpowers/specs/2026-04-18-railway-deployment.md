@@ -215,12 +215,10 @@ grep -rIE "(sk-ant-|pcsk_|voyage_|SUPABASE_SERVICE_ROLE_KEY=[^$])" \
 Doppler Project: insurance-qa-agent
 ├── Config: prd_ingestion    → Railway ingestion-service에 연결
 ├── Config: prd_query        → Railway query-service에 연결
-├── Config: prd_ui           → Railway ui-service에 연결
-├── Config: dev_ingestion    → 로컬 개발용 (선택)
-├── Config: dev_query        → 로컬 개발용 (선택)
-└── Config: dev_ui           → 로컬 개발용 (선택)
+└── Config: prd_ui           → Railway ui-service에 연결
 ```
 
+- Doppler는 **프로덕션 환경변수 관리만** 담당. 로컬 개발은 기존 `.env.local` / `.env` 파일 방식 유지 (로컬 개발이 외부 서비스 의존하지 않도록)
 - 공유 변수(VOYAGE_API_KEY, QDRANT_URL, QDRANT_API_KEY, SUPABASE_*, INTERNAL_AUTH_SECRET)는 3 config에 중복 입력. parent/child inherited config 는 포트폴리오 스코프에서 드롭 (학습 비용 대비 이득 낮음)
 - `.env.production.example` 파일들이 각 config의 "필요 키 목록" 레퍼런스 역할
 
@@ -266,11 +264,10 @@ Doppler Project: insurance-qa-agent
 
 ### 6.4 로컬 개발
 
-- `brew install dopplerhq/cli/doppler`
-- 각 service 디렉토리에서: `doppler login` → `doppler setup` (project=insurance-qa-agent, config=dev_<service>)
-- 실행: `doppler run -- npm run dev` / `doppler run -- go run .` 등
-- 로컬 `.env` 파일 불필요. 다만 Doppler 미설치 환경 대비 `.env.example`은 유지
-- 구현 단계에서 각 서비스 package.json 의 `dev` 스크립트를 `doppler run -- <기존 명령>` 으로 업데이트 (선택)
+- 기존 방식 유지. 각 서비스의 로컬 `.env`, `.env.local` 파일에서 환경변수를 읽음
+- Doppler CLI 설치 불필요. 로컬 개발 경로에 외부 서비스 의존성 추가하지 않음
+- `.env.production.example` 파일로 "프로덕션에 필요한 키 목록" 만 레퍼런스화
+- 로컬 `.env` 와 Doppler 값이 drift할 가능성이 있으나, 포트폴리오 규모에선 새 키 추가 시 두 곳을 인지하고 수동 동기화하는 것으로 충분 (`.env.production.example` 업데이트가 암묵적 체크리스트 역할)
 
 ### 6.5 장애 모드
 
@@ -605,6 +602,9 @@ Railway 자동 health check
 - M1 §4.1 게이트 B grep 패턴이 `sk-ant-|pcsk_|voyage_` 세 가지뿐. JWT/bearer/AWS AKIA 등 더 포괄적 패턴을 추가하거나 `git-secrets` 같은 도구를 쓸 수도 있음. 포트폴리오 범위에선 현재 스펙으로 충분하다고 판단.
 - M2 §6.1 — `dev_*` configs를 "선택" 이라 표기했으나 `doppler run --` 로컬 개발을 전제로 설명함. 로컬 개발 방식을 `.env.local` 유지 vs Doppler dev config 전면 이전 중 어느 쪽으로 갈지 명시적 결정 필요.
 
-### 2026-04-18 1차 사용자 리뷰 대기
+### 2026-04-19 사용자 리뷰 반영
 
-사용자 확인 후 필요 시 Minor 2건 추가 반영 예정.
+- **M2 결정:** 로컬 개발은 기존 `.env.local` 방식 유지 (외부 서비스 의존성을 로컬까지 끌고 오지 않기 위함). Doppler는 프로덕션 전용.
+  - §6.1: `dev_*` config 3개 제거, 3 prd_* config만 유지
+  - §6.4: 로컬 개발 설명 재작성 — Doppler CLI 불필요. `.env.production.example` 이 암묵적 동기화 체크리스트 역할
+- **M1 결정 대기:** 보안 스캔 grep 패턴 확장 여부는 아직 사용자 응답 대기.
