@@ -55,3 +55,23 @@ spec:
                 secretKeyRef:
                   name: api-secrets
                   key: LANGFUSE_HOST
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: SUPABASE_URL
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: SUPABASE_SERVICE_ROLE_KEY
+            - name: EVAL_CRON_ENABLED
+              value: "true"
+            - name: EVAL_CRON_SCHEDULE
+              value: "0 3 * * 0"
+            - name: EVAL_SAMPLE_SIZE
+              value: "10"
+            - name: EVAL_SKIP_IF_NO_NEW_SNAPSHOTS
+              value: "true"
+            - name: EVAL_AUTO_PROMOTE_BASELINE
+              value: "true"

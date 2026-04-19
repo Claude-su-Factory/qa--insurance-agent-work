@@ -4,21 +4,47 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$SCRIPT_DIR/.."
 
+NO_BUILD=false
+SERVICES=()
+
+for arg in "$@"; do
+  case "$arg" in
+    --no-build)
+      NO_BUILD=true
+      ;;
+    *)
+      SERVICES+=("$arg")
+      ;;
+  esac
+done
+
+echo "=== 0-pre. Checking minikube status ==="
+if ! minikube status --format='{{.Host}}' 2>/dev/null | grep -q "^Running$" \
+   || ! minikube status --format='{{.APIServer}}' 2>/dev/null | grep -q "^Running$"; then
+  echo "minikube가 중지되어 있거나 API 서버가 내려간 상태입니다. 시작합니다..."
+  minikube start
+fi
+minikube update-context >/dev/null 2>&1 || true
+
 echo "=== 0. Applying secrets from .env files ==="
 bash "$SCRIPT_DIR/apply-secrets.sh"
 
 echo "=== 1. Setting minikube Docker env ==="
 eval $(minikube docker-env)
 
-echo "=== 2. Building Docker images ==="
-cd "$ROOT"
-if [ $# -gt 0 ]; then
-  for svc in "$@"; do
-    echo "  Building $svc..."
-    docker compose build "$svc"
-  done
+if [ "$NO_BUILD" = true ]; then
+  echo "=== 2. Skipping Docker build (--no-build) ==="
 else
-  docker compose build
+  echo "=== 2. Building Docker images ==="
+  cd "$ROOT"
+  if [ ${#SERVICES[@]} -gt 0 ]; then
+    for svc in "${SERVICES[@]}"; do
+      echo "  Building $svc..."
+      docker compose build "$svc"
+    done
+  else
+    docker compose build
+  fi
 fi
 
 echo "=== 3. Applying K8s manifests ==="
@@ -27,11 +53,18 @@ kubectl apply -f k8s/ingestion-service/
 kubectl apply -f k8s/query-service/
 kubectl apply -f k8s/ui-service/
 
-echo "=== 4. Rolling out deployments ==="
-kubectl rollout restart deployment/ingestion-service deployment/query-service deployment/ui-service
-kubectl rollout status deployment/ingestion-service --timeout=90s
-kubectl rollout status deployment/query-service --timeout=90s
-kubectl rollout status deployment/ui-service --timeout=90s
+if [ "$NO_BUILD" = true ]; then
+  echo "=== 4. Ensuring deployments are available (no restart) ==="
+  kubectl rollout status deployment/ingestion-service --timeout=90s
+  kubectl rollout status deployment/query-service --timeout=90s
+  kubectl rollout status deployment/ui-service --timeout=90s
+else
+  echo "=== 4. Rolling out deployments ==="
+  kubectl rollout restart deployment/ingestion-service deployment/query-service deployment/ui-service
+  kubectl rollout status deployment/ingestion-service --timeout=90s
+  kubectl rollout status deployment/query-service --timeout=90s
+  kubectl rollout status deployment/ui-service --timeout=90s
+fi
 
 echo "=== 5. Setting up port-forward ==="
 pkill -f "kubectl port-forward" 2>/dev/null || true

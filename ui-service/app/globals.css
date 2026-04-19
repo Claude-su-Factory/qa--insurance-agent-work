@@ -30,6 +30,15 @@ body {
 .animation-delay-150 { animation-delay: 150ms; }
 .animation-delay-300 { animation-delay: 300ms; }
 
+/* 질문 처리 진행 바 (classifier 이전 indeterminate 구간) */
+@keyframes progress-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.2s ease-in-out infinite;
+}
+
 /* 스크롤바 스타일 */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

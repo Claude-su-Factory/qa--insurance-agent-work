@@ -166,9 +166,10 @@ grep -rIE "(sk-ant-|pcsk_|voyage_|SUPABASE_SERVICE_ROLE_KEY=[^$])" \
 
 - UI만 public URL 부여: `https://ui-service-production-XXXX.up.railway.app` 형태
 - ingestion, query는 Railway internal DNS 전용 (`<service>.railway.internal`)
-- 서비스 간 URL은 Railway **reference variable** 로 Doppler에 입력:
-  - `QUERY_SERVICE_URL = http://${{query-service.RAILWAY_PRIVATE_DOMAIN}}:${{query-service.PORT}}`
-  - `INGESTION_SERVICE_URL = http://${{ingestion-service.RAILWAY_PRIVATE_DOMAIN}}:${{ingestion-service.PORT}}`
+- 서비스 간 URL은 Railway **reference variable** 로 Doppler에 입력 (env 이름은 **코드 canonical**에 맞춤):
+  - ui-service → query-service: `QUERY_API_URL = http://${{query-service.RAILWAY_PRIVATE_DOMAIN}}:${{query-service.PORT}}`
+  - ui-service → ingestion-service: `INGESTION_API_URL = http://${{ingestion-service.RAILWAY_PRIVATE_DOMAIN}}:${{ingestion-service.PORT}}`
+  - query-service eval self-hit: `QUERY_SERVICE_URL = http://${{query-service.RAILWAY_PRIVATE_DOMAIN}}:${{query-service.PORT}}` (`query-service/src/eval/runner.ts:59` 기존 이름 유지)
   - Railway가 deploy 시점에 자동 치환 → "먼저 배포해서 DNS 확인 → 값 입력 → 재배포" 닭-달걀 루프 불필요
 - 브라우저 → UI → (server-side proxy) → query/ingestion. 외부에서 query/ingestion 직접 호출 경로 없음
 - 공격 표면 = UI 하나
@@ -182,9 +183,10 @@ grep -rIE "(sk-ant-|pcsk_|voyage_|SUPABASE_SERVICE_ROLE_KEY=[^$])" \
 - query-service (TS): `process.env.PORT` 우선
 - ui-service (Next.js): Next.js는 `PORT` env 자동 존중. Dockerfile CMD에 `-p ${PORT:-3000}` 명시
 
-**요구사항 R2 — 서비스 URL 환경변수화:**
-- ui-service: `QUERY_SERVICE_URL`, `INGESTION_SERVICE_URL` 환경변수 기반 호출. 하드코딩된 localhost/k8s DNS 전면 제거
-- query-service: ingestion 호출 경로가 있으면 `INGESTION_SERVICE_URL` 환경변수 사용
+**요구사항 R2 — 서비스 URL 환경변수화 (canonical 이름 기준):**
+- ui-service: 이미 코드 상 `process.env.QUERY_API_URL`, `process.env.INGESTION_API_URL` 사용 중. Railway/Doppler에 해당 이름으로 주입만 하면 됨 (코드 수정 불필요)
+- query-service eval worker: `process.env.QUERY_SERVICE_URL` 사용 중 (자기 자신 호출 용). 동일 이름으로 Doppler에 주입
+- 하드코딩된 localhost / k8s DNS 잔재가 있는지 repo 스캔 → 발견 시 제거
 
 **요구사항 R3 — `/health` 엔드포인트 존재 보장 (스펙 수준 필수):**
 - Railway health check를 위한 필수. 3 서비스 모두 `/health` (또는 UI는 `/api/health`) 로 200 반환 필요
@@ -219,7 +221,7 @@ Doppler Project: insurance-qa-agent
 ```
 
 - Doppler는 **프로덕션 환경변수 관리만** 담당. 로컬 개발은 기존 `.env.local` / `.env` 파일 방식 유지 (로컬 개발이 외부 서비스 의존하지 않도록)
-- 공유 변수(VOYAGE_API_KEY, QDRANT_URL, QDRANT_API_KEY, SUPABASE_*, INTERNAL_AUTH_SECRET)는 3 config에 중복 입력. parent/child inherited config 는 포트폴리오 스코프에서 드롭 (학습 비용 대비 이득 낮음)
+- 공유 변수(VOYAGE_API_KEY, QDRANT_URL, QDRANT_API_KEY, SUPABASE_*, INTERNAL_AUTH_TOKEN)는 3 config에 중복 입력. parent/child inherited config 는 포트폴리오 스코프에서 드롭 (학습 비용 대비 이득 낮음)
 - `.env.production.example` 파일들이 각 config의 "필요 키 목록" 레퍼런스 역할
 
 ### 6.2 서비스별 환경변수 목록 (예상)
@@ -230,25 +232,25 @@ Doppler Project: insurance-qa-agent
 - `VOYAGE_API_KEY`
 - `QDRANT_URL`, `QDRANT_API_KEY`
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
-- `INTERNAL_AUTH_SECRET`
-- `PORT` (Railway 주입)
+- `INTERNAL_AUTH_TOKEN`
+- `PORT` (Railway 자동 주입)
 
 **prd_query:**
 - `ANTHROPIC_API_KEY`
 - `VOYAGE_API_KEY`
-- `QDRANT_URL`, `QDRANT_API_KEY`
+- `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION`
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`
-- `INTERNAL_AUTH_SECRET`
-- `INGESTION_SERVICE_URL`
-- `PORT`
+- `INTERNAL_AUTH_TOKEN`
+- `QUERY_SERVICE_URL` (eval worker self-hit)
+- `PORT` (Railway 자동 주입)
 
 **prd_ui:**
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `QUERY_SERVICE_URL`, `INGESTION_SERVICE_URL`
-- `INTERNAL_AUTH_SECRET`
-- `PORT`
+- `QUERY_API_URL`, `INGESTION_API_URL`
+- `INTERNAL_AUTH_TOKEN`
+- `PORT` (Railway 자동 주입)
 
 **총 예상 키 수:** 약 25개. Doppler Free plan 20 secrets 한도 초과 가능성 있음 → **구현 단계에서 실제 세어보고 초과 시 Team plan ($20/월) 또는 공유 변수 중복 제거 전략 재평가**.
 
@@ -442,9 +444,9 @@ Railway 자동 health check
 
 1. Railway 3 service 등록 (source = GitHub repo, root directory 지정). 이 시점에 Railway가 각 service의 internal DNS와 PORT를 확정
 2. Doppler에 **literal reference variable 문자열**을 그대로 입력:
-   - `prd_ui`.`QUERY_SERVICE_URL` = `http://${{query-service.RAILWAY_PRIVATE_DOMAIN}}:${{query-service.PORT}}`
-   - `prd_ui`.`INGESTION_SERVICE_URL` = `http://${{ingestion-service.RAILWAY_PRIVATE_DOMAIN}}:${{ingestion-service.PORT}}`
-   - `prd_query`.`INGESTION_SERVICE_URL` = `http://${{ingestion-service.RAILWAY_PRIVATE_DOMAIN}}:${{ingestion-service.PORT}}`
+   - `prd_ui`.`QUERY_API_URL` = `http://${{query-service.RAILWAY_PRIVATE_DOMAIN}}:${{query-service.PORT}}`
+   - `prd_ui`.`INGESTION_API_URL` = `http://${{ingestion-service.RAILWAY_PRIVATE_DOMAIN}}:${{ingestion-service.PORT}}`
+   - `prd_query`.`QUERY_SERVICE_URL` = `http://${{query-service.RAILWAY_PRIVATE_DOMAIN}}:${{query-service.PORT}}` (eval worker self-hit)
 3. Doppler → Railway 자동 sync (Railway는 push 받은 시점에 reference variable 치환 수행)
 4. 첫 deploy 실행 → 서비스 기동 성공
 5. ui-service public URL 확인 후 Supabase dashboard (Authentication → URL Configuration) 에 site URL + redirect URLs 등록
@@ -504,9 +506,10 @@ Railway 자동 health check
 - `docs/STATUS.md` — Railway 완료 반영, 다음 추천 작업 재설정
 - `docs/ROADMAP.md` — JD "클라우드 서비스" ✅ 승격
 - `docs/ARCHITECTURE.md` — 배포 아키텍처 섹션 추가, Langfuse 관찰 주석 수정
-- `ingestion-service/` port binding 로직 — `$PORT` 환경변수 우선
-- `query-service/src/index.ts` — `$PORT` 우선 + `INGESTION_SERVICE_URL` 환경변수화
-- `ui-service/` — `QUERY_SERVICE_URL`, `INGESTION_SERVICE_URL` 환경변수화
+- `ingestion-service/cmd/main.go` + `internal/config/config.go` — `$PORT` 환경변수 우선 바인딩 (현재 config.toml 만 읽음)
+- `query-service/src/index.ts` — 이미 `$PORT` 읽고 있음 (재검증만)
+- `ui-service/app/api/*` — 이미 `QUERY_API_URL`/`INGESTION_API_URL` 사용 중 (재검증만)
+- `ui-service/app/api/health/route.ts` — **신규 생성** (Railway health check용)
 - `README.md` — 배포 배지 + live URL 링크
 
 ### 10.3 삭제 / Deprecated
@@ -612,3 +615,13 @@ Railway 자동 health check
 ### 2026-04-19 스펙 확정
 
 사용자 리뷰 완료. M1, M2 반영 후 스펙 finalize. 구현 계획 작성 단계로 진행.
+
+### 2026-04-19 계획 작성 중 환경변수 이름 정합성 패치
+
+계획 작성을 위해 코드를 재조사하는 과정에서 스펙의 env 이름이 코드 canonical 과 다름을 발견. 스펙을 코드에 맞춤.
+
+- `INTERNAL_AUTH_SECRET` → `INTERNAL_AUTH_TOKEN` (3 서비스 코드 모두 `INTERNAL_AUTH_TOKEN` 사용)
+- ui-service URL env: `QUERY_SERVICE_URL`/`INGESTION_SERVICE_URL` → `QUERY_API_URL`/`INGESTION_API_URL` (`ui-service/app/api/query/route.ts`, `ui-service/app/api/ingest/route.ts` 에 canonical)
+- query-service eval worker: `QUERY_SERVICE_URL` 유지 (`query-service/src/eval/runner.ts:59` 에서 이 이름으로 자기 자신 호출). ui-service 가 query-service 를 부르는 경로와 이름이 다른 점은 의도적 분리
+- §5.3 R2 내용 정정: ui-service 는 이미 canonical env 를 사용 중. 코드 수정이 필요한 건 ingestion-service port binding 과 ui-service `/health` 엔드포인트 신규 생성 두 가지
+- §6.2 `QDRANT_COLLECTION` 추가 (query-service가 읽는데 스펙에서 누락)
