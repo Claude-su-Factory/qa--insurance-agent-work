@@ -46,7 +46,7 @@ func main() {
 		log.Fatal("INTERNAL_AUTH_TOKEN is required")
 	}
 
-	qdrantStore := store.New(cfg.Qdrant.BaseURL, cfg.Qdrant.Collection)
+	qdrantStore := store.New(cfg.Qdrant.BaseURL, cfg.Qdrant.Collection, os.Getenv("QDRANT_API_KEY"))
 	if err := qdrantStore.EnsureCollection(context.Background(), 1024); err != nil {
 		log.Fatalf("failed to ensure qdrant collection: %v", err)
 	}

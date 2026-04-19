@@ -2,6 +2,8 @@ package store_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,3 +64,34 @@ func TestMockStore_EnsurePayloadIndex(t *testing.T) {
 }
 
 var _ store.Store = (*store.QdrantStore)(nil)
+
+func TestQdrantStore_SendsAPIKeyHeader(t *testing.T) {
+	var gotAPIKey string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAPIKey = r.Header.Get("api-key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	s := store.New(srv.URL, "test_collection", "secret-key-123")
+	err := s.EnsureCollection(context.Background(), 1024)
+	assert.NoError(t, err)
+	assert.Equal(t, "secret-key-123", gotAPIKey)
+}
+
+func TestQdrantStore_OmitsAPIKeyHeaderWhenEmpty(t *testing.T) {
+	var gotAPIKey string
+	var hasHeader bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, hasHeader = r.Header["Api-Key"]
+		gotAPIKey = r.Header.Get("api-key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	s := store.New(srv.URL, "test_collection", "")
+	err := s.EnsureCollection(context.Background(), 1024)
+	assert.NoError(t, err)
+	assert.False(t, hasHeader)
+	assert.Equal(t, "", gotAPIKey)
+}
