@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# !!! DEPRECATED (2026-04-19): Railway + Doppler로 대체됨.
+# 이 스크립트는 레거시 minikube 흐름 증빙용으로만 남아있다.
+# 프로덕션 배포는 main push → GitHub Actions → Railway 자동 배포로 처리된다.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

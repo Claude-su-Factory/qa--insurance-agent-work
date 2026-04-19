@@ -1,6 +1,6 @@
 # 아키텍처 문서
 
-**마지막 업데이트:** 2026-04-18
+**마지막 업데이트:** 2026-04-19
 
 ---
 
@@ -9,13 +9,13 @@
 ```mermaid
 flowchart TB
     User[사용자 브라우저]
-    subgraph K8s[minikube 클러스터]
+    subgraph Railway[Railway Hobby]
         UI[ui-service<br/>Next.js 14]
         Query[query-service<br/>TS + Hono + LangGraph]
         Ingest[ingestion-service<br/>Go + Fiber]
-        Qdrant[(Qdrant<br/>벡터 DB)]
     end
     subgraph External[외부 SaaS]
+        Qdrant[(Qdrant Cloud<br/>벡터 DB)]
         Supabase[(Supabase<br/>Auth + Postgres)]
         Anthropic[Anthropic API<br/>Claude]
         Voyage[Voyage AI<br/>임베딩]
@@ -237,7 +237,7 @@ ui-service → 백엔드 서비스 호출 시 `X-Internal-Token` 헤더 동봉.
 - `answer_team` subgraph: answer_generator + citation_formatter
 - self-correction (grader + query_rewriter): top-level에 유지, grader 실패 시 query_rewriter → retrieval_team 루프
 - LangGraph `subgraphs: true` 스트리밍으로 nested 진행 상태 push
-**관찰:** 배포 환경에서 Langfuse는 `keys not configured`로 비활성 상태여서 nested span hierarchy를 실측할 수 없었음. 구조 증빙은 코드/문서 레벨 + SSE 스트리밍(supervisor → retriever → answer_generator → citation_formatter → grader 순서로 progressIndex 정상 증가)에서 확인됨.
+**관찰:** Railway 배포 (2026-04-19)로 Langfuse Cloud 키가 주입되면서 nested span hierarchy 실측 가능. 구조 증빙은 코드/문서 레벨 + SSE 스트리밍(supervisor → retriever → answer_generator → citation_formatter → grader 순서로 progressIndex 정상 증가) + Langfuse Cloud 대시보드 trace로 확인됨.
 **제약:** Supervisor 재호출 루프 없음 (매 노드마다 LLM 라우팅은 과투자). 하위 팀 확장 시 별도 스펙
 **영향 파일:** `query-service/src/graph/nodes/supervisor.ts`, `query-service/src/graph/subgraphs/{retrieval-team,answer-team}.ts`, `query-service/src/graph/graph.ts`, `query-service/src/graph/stream.ts`, `query-service/src/jobs/step-labels.ts`
 **상세 스펙:** `docs/superpowers/specs/2026-04-18-supervisor-pattern.md`
@@ -286,12 +286,36 @@ ui-service → 백엔드 서비스 호출 시 `X-Internal-Token` 헤더 동봉.
 
 ---
 
+## 배포 아키텍처 (Railway, 2026-04-19)
+
+```
+GitHub (main push) → GitHub Actions (6 job CI) → Railway auto-deploy
+                                                    ├─ ingestion-service (private, :8080)
+                                                    ├─ query-service (private, :8080)
+                                                    └─ ui-service (public :8080, HTTPS)
+Doppler (prd_ingestion / prd_query / prd_ui) ── two-way sync ── Railway Variables
+```
+
+- 빌더: Dockerfile (각 service `railway.json`에 `"builder": "DOCKERFILE"` 고정)
+- 서비스 간 URL: Railway private domain (`http://<service>.railway.internal:8080`) — 공개 트래픽 없이 서비스 간 통신
+- 시크릿: Doppler 단일 진실 원천. 코드 저장소엔 값 없음
+- Health check: `/health` (ingestion/query), `/api/health` (ui)
+- 롤백: Railway dashboard 원클릭
+- 로컬 개발: 기존 `docker compose up -d` / `.env.local` 유지 (외부 cloud 의존 없음)
+
+**주의점 / 설계 결정**
+- Root Directory + Builder는 서비스 생성 시점에 "Connect Source" 단계에서 지정해야 적용됨 (post-hoc 변경은 반영 안 됨). 문제 발생 시 서비스 삭제 후 재생성이 가장 빠름
+- Next.js standalone 서버는 `HOSTNAME=0.0.0.0` 필수 (Railway proxy가 container 외부에서 접근하기 때문). Dockerfile에 ENV로 고정
+- Reference variable `${{svc.PORT}}`는 Railway 자동 주입 PORT를 **reference-time**에 resolve 못 함 → 하드코딩 `:8080` 사용
+- Qdrant Cloud는 `api-key` HTTP 헤더 필수. 두 서비스(ingestion-service Go `QdrantStore`, query-service TS `InsuranceQdrantClient`) 모두 QDRANT_API_KEY 전달 필요
+
+---
+
 ## 향후 아키텍처 변경 예정 (Phase 4)
 
 계획된 변경은 `docs/ROADMAP.md` 참조. YAGNI 원칙으로 Redis/메시지큐/k6은 드롭.
 
 - **model-service** — Phi-3 + bge CPU 양자화 자체 서빙 (grader/임베딩 교체)
-- **Railway** — minikube → 클라우드 이전
 - **Elasticsearch (선택)** — BM25 하이브리드 검색
 
 각 변경 구현 시 본 문서에 Why와 함께 추가한다.

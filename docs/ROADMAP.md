@@ -1,7 +1,7 @@
 # 프로젝트 로드맵
 
-**마지막 업데이트:** 2026-04-18
-**현재 추천 다음 작업:** Railway 클라우드 실배포
+**마지막 업데이트:** 2026-04-19
+**현재 추천 다음 작업:** `model-service` (Phi-3 CPU 양자화 자체 서빙)
 
 ---
 
@@ -26,7 +26,7 @@
 | AI 서비스 설계→개발→운영 전 과정 | ✅ | 설계 문서부터 배포 스크립트까지 |
 | AI 모델 서빙 프레임워크 (vllm, sglang, TensorRT-LLM) | ❌ | 외부 API만. **model-service 예정 (CPU 양자화)** |
 | AI Agent 프레임워크 (LangChain, LangGraph) | ✅ | LangGraph self-correction |
-| 클라우드 (AWS, Azure) | ❌ | 로컬 minikube만. **Railway 예정** |
+| 클라우드 (AWS, Azure) | ✅ | Railway Hobby 실배포 + Doppler 시크릿 sync + GitHub Actions CI/CD (main push → auto-deploy, 2026-04-19) |
 | Docker/K8s/MSA | ✅ | 구축 완료 |
 | 팀 협업/의사소통 | ⚠️ | 문서화(스펙/STATUS/ROADMAP/ARCHITECTURE)로 간접 증빙 |
 
@@ -112,16 +112,16 @@
 
 ---
 
-### 4. Railway 클라우드 실배포
+### 4. Railway 클라우드 실배포 ✅ 완료 (2026-04-19)
 **JD 매핑:** 클라우드 서비스 (필수)
 
-**범위**
-- minikube → Railway 서비스 단위 이전
-- 환경변수 + 시크릿 관리 (Railway 플랫폼)
-- 도메인 + HTTPS
-- (선택) model-service도 함께 배포
-
-**예상 기간:** 2-3일
+**최종 구조**
+- 3 service (ingestion / query / ui) Railway Hobby 배포, Dockerfile 빌더
+- 시크릿: Doppler (`prd_ingestion` / `prd_query` / `prd_ui`) → Railway 자동 sync
+- 서비스 간 URL: Railway private domain 참조 (`http://<svc>.railway.internal:8080`)
+- CI: GitHub Actions 6 job (3 test + 3 docker-build matrix), main push → auto-deploy
+- 외부 의존: Qdrant Cloud, Langfuse Cloud (키 주입 완료), Supabase (기존)
+- Live URL: https://ui-service-production-4cab.up.railway.app
 
 ---
 
@@ -150,5 +150,6 @@ BM25 + dense vector 결합, RRF 기반. 검색 품질 개선이 명확하면 진
 1. 하네스 파일화 ✅
 2. 자동 Evaluation 파이프라인 ✅
 3. Agent 고도화 ✅ 완료 (축소 Supervisor, 2026-04-18)
-4. **현재 다음**: Railway 클라우드 실배포
-5. model-service + Tier 2/Tier 3 선택
+4. Railway 클라우드 실배포 + CI/CD 자동화 ✅ 완료 (2026-04-19)
+5. **현재 다음**: model-service (Phi-3 CPU 양자화)
+6. Tier 2/Tier 3 선택

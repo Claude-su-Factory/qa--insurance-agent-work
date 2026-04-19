@@ -87,21 +87,18 @@ kubectl port-forward svc/ui-service 3000:3000 &
 
 ## 배포 규칙 (MANDATORY)
 
-Claude가 직접 수행한다. 사용자에게 인프라 작업을 요청하지 않는다.
+프로덕션 배포는 Railway가 자동 수행한다. 사람 손 개입 0.
 
-```bash
-# 코드 변경 후 — 전체 빌드 + 재배포
-bash scripts/deploy.sh
+- `main` 브랜치에 push 또는 PR 머지 → GitHub Actions 6 job (3 test + 3 docker-build matrix) 통과 → Railway 3 service 자동 배포
+- 환경변수는 Doppler → Railway 자동 sync. 코드 저장소에 시크릿 값 없음
+- 로컬 개발은 기존 `.env.local` / `docker compose up -d` 방식 유지 (외부 cloud 의존 없이 동작)
+- minikube 관련 `scripts/deploy.sh` / `scripts/apply-secrets.sh`는 레거시 증빙용 보존. 프로덕션엔 사용 안 함
 
-# 특정 서비스만 빌드 후 배포
-bash scripts/deploy.sh ui-service
-bash scripts/deploy.sh ingestion-service query-service
-
-# 코드 변경 없음 — 환경만 복구 (minikube 기동, Pod 대기, 포트포워드)
-bash scripts/deploy.sh --no-build
-```
-
-스크립트가 minikube 상태 체크 → 시크릿 적용 → (옵션) Docker 빌드 → K8s apply → (옵션) rollout → 포트포워드 → 헬스체크를 모두 처리한다. minikube가 중지된 상태여도 자동으로 기동된다. K8s secret yaml은 존재하지 않으며, 시크릿은 오직 `.env` 파일 → `apply-secrets.sh`를 통해서만 생성된다.
+### 프로덕션 관찰
+- Railway dashboard: 서비스 상태, 로그, 롤백
+- Doppler dashboard: env 값 관리 (config = `prd_ingestion` / `prd_query` / `prd_ui`)
+- Langfuse dashboard: LLM trace
+- GitHub Actions: CI 이력
 
 ## 문서 업데이트 규칙 (MANDATORY)
 
