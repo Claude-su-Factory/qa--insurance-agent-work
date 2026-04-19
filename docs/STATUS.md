@@ -1,7 +1,7 @@
 # 프로젝트 구현 상태
 
-**마지막 업데이트:** 2026-04-18
-**현재 추천 다음 작업:** Railway 클라우드 실배포 (JD 클라우드 요구사항 충족)
+**마지막 업데이트:** 2026-04-19
+**현재 추천 다음 작업:** `model-service` (Phi-3 CPU 양자화 자체 서빙) — JD "AI 모델 서빙 프레임워크" 갭 보완
 
 ---
 
@@ -50,7 +50,7 @@
 - [x] 통합 `deploy.sh` (시크릿 → 빌드 → 롤아웃 → 포트포워드 → 헬스체크)
 - [x] `deploy.sh --no-build` + minikube 자동 복구 (2026-04-17)
 - [x] 프로젝트 하네스 문서화 (STATUS/ROADMAP/ARCHITECTURE, 2026-04-17)
-- [ ] Railway 클라우드 배포
+- [x] Railway 클라우드 실배포 + Doppler 시크릿 sync + GitHub Actions CI/CD (2026-04-19)
 
 ### Phase 4 — JD 갭 보완 ⏳ (예정)
 
@@ -60,8 +60,8 @@ Tier 1 (최우선)
 - [x] 자동 Evaluation 파이프라인 (백그라운드 자동화, Supabase 기반, node-cron 스케줄)
 - [x] 쿼리 진행 상태 UX + 중복 요청 방지 (비동기 + SSE, 단계별 진행바) (SSE 전환 완료)
 - [x] Agent 고도화 (축소 Supervisor 패턴 적용, 2026-04-18)
-- [ ] `model-service` (Phi-3 CPU 양자화 자체 서빙)
-- [ ] Railway 클라우드 실배포 ← **다음 작업**
+- [x] Railway 클라우드 실배포 + CI/CD 자동화 (2026-04-19)
+- [ ] `model-service` (Phi-3 CPU 양자화 자체 서빙) ← **다음 작업**
 
 Tier 2 (LLMOps 심화)
 - [ ] 프롬프트 버전 관리 + A/B (Langfuse Prompts)
@@ -78,7 +78,7 @@ Tier 3 (선택적 차별화)
 |---|---|---|---|---|
 | ingestion-service | PDF 업로드 → 청킹 → 임베딩 → Qdrant 저장 | `POST /ingest`, `GET /ingest/status/{jobId}`, `GET /health` | Qdrant, Voyage AI, Supabase | ✅ 운영 |
 | query-service | LangGraph 기반 QA Agent | `POST /query`, `GET /health` | Qdrant, Anthropic, Voyage AI, Langfuse | ✅ 운영 |
-| ui-service | 랜딩, 대시보드, API 라우트 프록시 | `/`, `/dashboard`, `/api/*` | Supabase, query-service, ingestion-service | ✅ 운영 |
+| ui-service | 랜딩, 대시보드, API 라우트 프록시 | `/`, `/dashboard`, `/api/*`, `/api/health` | Supabase, query-service, ingestion-service | ✅ 운영 |
 | qdrant | 벡터 DB | `:6333` (REST) | — | ✅ 운영 |
 
 ---
@@ -87,6 +87,7 @@ Tier 3 (선택적 차별화)
 
 | 날짜 | 변경 | 관련 스펙 |
 |---|---|---|
+| 2026-04-19 | Railway 실배포 + CI/CD 자동화 (3 service Hobby, Doppler ↔ Railway sync, GitHub Actions 6 job, main push → auto-deploy, Qdrant Cloud + Langfuse Cloud 활성). Live: https://ui-service-production-4cab.up.railway.app | `2026-04-18-railway-deployment.md` |
 | 2026-04-18 | Supervisor 패턴 + Hierarchical Team (retrieval_team, answer_team subgraph) | `2026-04-18-supervisor-pattern.md` |
 | 2026-04-18 | 쿼리 진행 상태 SSE 전환 (폴링 제거, EventSource + EventEmitter pub/sub, eval runner SSE 구독) | `2026-04-17-query-sse.md` |
 | 2026-04-17 | 쿼리 진행 상태 UX + 중복 요청 방지 (POST 비동기 + /status 폴링, QueryProgress 컴포넌트, 409 in-flight) | `2026-04-17-query-progress-ux.md` |

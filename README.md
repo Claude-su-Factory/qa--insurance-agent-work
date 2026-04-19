@@ -1,5 +1,9 @@
 # Insurance QA Agent
 
+[![CI](https://github.com/Claude-su-Factory/qa--insurance-agent-work/actions/workflows/ci.yml/badge.svg)](https://github.com/Claude-su-Factory/qa--insurance-agent-work/actions/workflows/ci.yml)
+
+**Live demo:** https://ui-service-production-4cab.up.railway.app
+
 Go + TypeScript 마이크로서비스 기반 보험 약관 QA Agent.
 
 ```
@@ -11,37 +15,118 @@ k8s/                 minikube K8s 배포 매니페스트
 
 ## 배포
 
-모든 배포는 `scripts/deploy.sh` 하나로 처리한다. minikube가 중지돼 있으면 자동으로 기동한다.
+프로덕션은 Railway가 자동 수행. `main` push → GitHub Actions 6 job (3 test + 3 docker-build matrix) 통과 → Railway 3 service 자동 재배포.
+
+- 시크릿: Doppler (`prd_ingestion` / `prd_query` / `prd_ui`) → Railway 자동 sync. 저장소에 값 없음
+- 서비스 간 URL: Railway private domain (`http://<svc>.railway.internal:8080`)
+- Health: ingestion/query `/health`, ui `/api/health`
+
+로컬 개발:
 
 ```bash
-# 코드 변경 후 — 전체 빌드 + 재배포
-bash scripts/deploy.sh
-
-# 특정 서비스만 빌드 후 배포
-bash scripts/deploy.sh ui-service
-bash scripts/deploy.sh ingestion-service query-service
-
-# 코드 변경 없음 — 환경만 복구 (minikube 기동, Pod 대기, 포트포워드)
-bash scripts/deploy.sh --no-build
+docker compose up -d
+# → UI: http://localhost:3000
 ```
 
-스크립트 수행 단계:
+`scripts/deploy.sh` 및 `scripts/apply-secrets.sh`는 레거시 minikube 흐름 증빙용 (프로덕션엔 사용 안 함).
 
-1. minikube 상태 체크 (중지 시 자동 `minikube start`)
-2. `.env` → K8s secret 적용 (`apply-secrets.sh`)
-3. minikube Docker env 설정
-4. Docker 이미지 빌드 (`--no-build` 시 생략)
-5. K8s 매니페스트 apply
-6. Deployment rollout (`--no-build` 시 restart 없이 status 대기만)
-7. 포트포워드 (`3000`, `8081`)
-8. 헬스체크 (`http://localhost:3000`, `http://localhost:8081/health`)
+## 데이터베이스 스키마 (Supabase Postgres)
 
-## 접근
+실제 코드에서 사용하는 테이블은 6개다. 전체 DDL은 `supabase/migrations/` 아래에 번호 순서로 관리되며, 새 환경 부트스트랩 시 Supabase Studio SQL Editor에 순서대로 붙여넣어 실행한다.
 
-- UI: http://localhost:3000
-- Ingestion API: http://localhost:8081
-- Qdrant: 클러스터 내부에서만 접근
+```sql
+create table documents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  filename text not null,
+  chunk_count int not null default 0,
+  status text not null default 'pending' check (status in ('pending', 'ready', 'failed')),
+  created_at timestamptz not null default now(),
+  unique (user_id, filename)
+);
+create index documents_user_id_idx on documents (user_id);
+create index documents_created_at_idx on documents (created_at desc);
+```
 
-## 시크릿
+```sql
+create table messages (
+  id uuid primary key default gen_random_uuid(),
+  document_id uuid not null references documents(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null check (role in ('user', 'assistant')),
+  content text not null,
+  citations jsonb,
+  created_at timestamptz not null default now()
+);
+create index messages_document_id_idx on messages (document_id);
+create index messages_created_at_idx on messages (created_at);
+```
 
-시크릿은 오직 `.env` 파일 → `apply-secrets.sh`를 통해서만 생성된다. K8s secret yaml은 저장소에 존재하지 않는다.
+```sql
+create table eval_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  question_hash text not null unique,
+  question text not null,
+  user_id uuid not null,
+  document_id uuid not null,
+  category text not null,
+  baseline_answer text not null,
+  baseline_citations jsonb not null,
+  baseline_retrieved_clauses jsonb not null,
+  baseline_grader_score int not null,
+  source_trace_id text,
+  created_at timestamptz not null default now()
+);
+create index eval_snapshots_category_idx on eval_snapshots (category);
+create index eval_snapshots_created_at_idx on eval_snapshots (created_at desc);
+```
+
+```sql
+create table eval_runs (
+  id uuid primary key default gen_random_uuid(),
+  run_id text not null unique,
+  started_at timestamptz not null,
+  finished_at timestamptz,
+  status text not null check (status in ('running', 'completed', 'failed')),
+  dataset_size int not null default 0,
+  aggregate jsonb,
+  by_category jsonb,
+  has_regression boolean default false,
+  error text
+);
+create index eval_runs_started_at_idx on eval_runs (started_at desc);
+```
+
+```sql
+create table eval_run_items (
+  id uuid primary key default gen_random_uuid(),
+  run_id text not null references eval_runs(run_id) on delete cascade,
+  snapshot_id uuid not null references eval_snapshots(id) on delete cascade,
+  answer text,
+  retrieved_clauses jsonb,
+  scores jsonb not null,
+  error text,
+  created_at timestamptz not null default now()
+);
+create index eval_run_items_run_id_idx on eval_run_items (run_id);
+```
+
+```sql
+create table eval_baselines (
+  id uuid primary key default gen_random_uuid(),
+  run_id text not null references eval_runs(run_id),
+  aggregate jsonb not null,
+  by_category jsonb not null,
+  approved_at timestamptz not null default now(),
+  approved_by text not null default 'auto' check (approved_by in ('auto', 'manual'))
+);
+create index eval_baselines_approved_at_idx on eval_baselines (approved_at desc);
+```
+
+```sql
+grant all on eval_snapshots, eval_runs, eval_run_items, eval_baselines to service_role;
+```
+
+### Qdrant (벡터 DB)
+
+DDL 없음. ingestion-service 기동 시 자동 생성 (`ingestion-service/internal/store/store.go:EnsureCollection`). Collection `insurance_clauses`, vector size 1024 (voyage-2), Cosine distance, payload index = `user_id` / `document_id` (keyword).
