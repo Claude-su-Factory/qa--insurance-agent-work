@@ -19,10 +19,18 @@ type Store interface {
 type QdrantStore struct {
 	baseURL    string
 	collection string
+	apiKey     string
 }
 
-func New(baseURL, collection string) Store {
-	return &QdrantStore{baseURL: baseURL, collection: collection}
+func New(baseURL, collection, apiKey string) Store {
+	return &QdrantStore{baseURL: baseURL, collection: collection, apiKey: apiKey}
+}
+
+func (q *QdrantStore) setHeaders(req *http.Request) {
+	req.Header.Set("Content-Type", "application/json")
+	if q.apiKey != "" {
+		req.Header.Set("api-key", q.apiKey)
+	}
 }
 
 type point struct {
@@ -57,7 +65,7 @@ func (q *QdrantStore) Upsert(ctx context.Context, chunks []string, vectors [][]f
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	q.setHeaders(req)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -82,7 +90,7 @@ func (q *QdrantStore) EnsurePayloadIndex(ctx context.Context, field string, sche
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	q.setHeaders(req)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -110,7 +118,7 @@ func (q *QdrantStore) EnsureCollection(ctx context.Context, vectorSize uint64) e
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	q.setHeaders(req)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
