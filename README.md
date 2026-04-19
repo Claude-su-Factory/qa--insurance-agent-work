@@ -30,6 +30,26 @@ docker compose up -d
 
 `scripts/deploy.sh` 및 `scripts/apply-secrets.sh`는 레거시 minikube 흐름 증빙용 (프로덕션엔 사용 안 함).
 
+## 서비스 스펙
+
+- 마이크로서비스: Go(Fiber) + TS(Hono) + Next.js 14 폴리글랏
+- 벡터 DB: Qdrant (payload index + user_id 필터로 사용자 격리)
+- Agent 아키텍처: LangGraph.js Supervisor 패턴 + Hierarchical Team (retrieval_team / answer_team subgraph)
+- Self-correction: grader (Claude Haiku 채점) + query_rewriter 조건부 엣지 사이클
+- 실시간 스트리밍: SSE 기반 노드 단위 진행 상태 push (`graph.stream` subgraphs 모드)
+- 인증/보안: Supabase Auth (Google OAuth) + ui-service Edge 패턴 (JWT 단일 진입점) + X-Internal-Token 미들웨어
+- LLMOps: Langfuse Cloud 트레이싱 + 자동 Evaluation 파이프라인 (Supabase 4 테이블 + node-cron 주1회 + bootstrap baseline + auto-promote)
+- 클라우드 배포: Railway Hobby 3 service + Doppler 시크릿 sync + 서비스 간 private domain
+- CI/CD: GitHub Actions 6 job (test + docker-build matrix), `main` push → auto-deploy (사람 개입 0)
+- Docker/K8s: Dockerfile 빌더 + minikube 매니페스트 (레거시 증빙)
+- 비용 최적화: Claude prompt caching + 시스템 프롬프트 캐시 적중
+
+## ⏳ 예정 (JD 갭 보완)
+
+- AI 모델 경량화 & 자체 서빙: Phi-3-mini Q4_K_M GGUF → grader 교체 (llama.cpp/Ollama, CPU 양자화)
+- 프롬프트 버전 관리 + A/B (Langfuse Prompts)
+- 비용/품질 대시보드 (Langfuse Dashboard)
+
 ## 데이터베이스 스키마 (Supabase Postgres)
 
 실제 코드에서 사용하는 테이블은 6개다. 전체 DDL은 `supabase/migrations/` 아래에 번호 순서로 관리되며, 새 환경 부트스트랩 시 Supabase Studio SQL Editor에 순서대로 붙여넣어 실행한다.
@@ -126,7 +146,3 @@ create index eval_baselines_approved_at_idx on eval_baselines (approved_at desc)
 ```sql
 grant all on eval_snapshots, eval_runs, eval_run_items, eval_baselines to service_role;
 ```
-
-### Qdrant (벡터 DB)
-
-DDL 없음. ingestion-service 기동 시 자동 생성 (`ingestion-service/internal/store/store.go:EnsureCollection`). Collection `insurance_clauses`, vector size 1024 (voyage-2), Cosine distance, payload index = `user_id` / `document_id` (keyword).
