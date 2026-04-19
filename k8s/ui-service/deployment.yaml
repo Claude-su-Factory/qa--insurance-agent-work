@@ -26,9 +26,15 @@ spec:
             - name: INGESTION_API_URL
               value: "http://ingestion-service:8081"
             - name: NEXT_PUBLIC_SUPABASE_URL
-              value: "https://yqcxpxsniwelxcttfnph.supabase.co"
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: SUPABASE_URL
             - name: NEXT_PUBLIC_SUPABASE_ANON_KEY
-              value: "<REDACTED_SUPABASE_ANON_KEY>"
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secrets
+                  key: SUPABASE_ANON_KEY
             - name: SUPABASE_SERVICE_ROLE_KEY
               valueFrom:
                 secretKeyRef:
