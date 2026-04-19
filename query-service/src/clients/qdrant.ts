@@ -15,8 +15,8 @@ export class InsuranceQdrantClient {
   private client: QdrantClient;
   private collection: string;
 
-  constructor(url: string, collection: string) {
-    this.client = new QdrantClient({ url });
+  constructor(url: string, collection: string, apiKey?: string) {
+    this.client = new QdrantClient({ url, apiKey });
     this.collection = collection;
   }
 

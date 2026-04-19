@@ -19,7 +19,8 @@ import type { RetrievedClauseSnapshot } from "./eval/types.js";
 const voyageClient = new VoyageClient(process.env.VOYAGE_API_KEY!);
 const qdrantClient = new InsuranceQdrantClient(
   process.env.QDRANT_URL!,
-  process.env.QDRANT_COLLECTION!
+  process.env.QDRANT_COLLECTION!,
+  process.env.QDRANT_API_KEY
 );
 const graph = buildGraph(voyageClient, qdrantClient);
 
