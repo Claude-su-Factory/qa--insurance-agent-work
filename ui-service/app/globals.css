@@ -42,10 +42,6 @@ body {
   animation: progress-indeterminate 1.2s ease-in-out infinite;
 }
 
-/* 스피너 (QueryProgress 로더) */
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin { animation: spin 1s linear infinite; }
-
 /* 스크롤바 */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
