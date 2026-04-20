@@ -87,6 +87,7 @@ Tier 3 (선택적 차별화)
 
 | 날짜 | 변경 | 관련 스펙 |
 |---|---|---|
+| 2026-04-20 | AdSense 정책 준수 — 빈 CitationPanel에서 광고 제거, 랜딩/Privacy/Terms에 inline 슬롯 추가, Privacy/Terms 본문 보강(섹션 8개/1300-1500자), AdSenseSlot variant prop 도입 | `2026-04-20-adsense-compliance.md` |
 | 2026-04-20 | UI 리디자인 (Claude Design 기반) — ClauseIQ 브랜드, lucide-react 아이콘, CSS 토큰, 랜딩/로그인/대시보드 전면 개편 (비즈니스 로직 보존) | `2026-04-19-ui-redesign-claude-design.md` |
 | 2026-04-19 | Railway 실배포 + CI/CD 자동화 (3 service Hobby, Doppler ↔ Railway sync, GitHub Actions 6 job, main push → auto-deploy, Qdrant Cloud + Langfuse Cloud 활성). Live: https://ui-service-production-4cab.up.railway.app | `2026-04-18-railway-deployment.md` |
 | 2026-04-18 | Supervisor 패턴 + Hierarchical Team (retrieval_team, answer_team subgraph) | `2026-04-18-supervisor-pattern.md` |
