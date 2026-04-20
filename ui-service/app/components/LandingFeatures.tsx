@@ -67,7 +67,7 @@ export default function LandingFeatures() {
                 {f.desc}
               </p>
               <span className="flex items-center gap-1.5 text-xs font-semibold">
-                {f.meta} <ArrowUpRight size={13} />
+                {f.meta} <ArrowUpRight size={13} aria-hidden={true} />
               </span>
             </div>
           );

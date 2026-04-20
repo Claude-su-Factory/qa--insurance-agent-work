@@ -2,7 +2,7 @@ import Link from "next/link";
 
 function ShieldLogo() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="15" height="15">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="15" height="15" aria-hidden="true">
       <path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4z" />
       <path d="M9 12l2 2 4-4" />
     </svg>
@@ -12,6 +12,7 @@ function ShieldLogo() {
 export default function LandingNav() {
   return (
     <nav
+      aria-label="Main navigation"
       className="sticky top-0 z-10 h-16 mx-auto flex items-center gap-8 px-10 max-w-[1200px]"
       style={{
         background: "color-mix(in srgb, var(--bg-alt) 85%, transparent)",
