@@ -3,34 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg: #FAFAFA;
+  --bg-alt: #FFFFFF;
+  --bg-2: #F4F4F5;
+  --surface: #FFFFFF;
+  --fg: #111113;
+  --fg-2: #3F3F46;
+  --muted: #71717A;
+  --border: #E4E4E7;
+  --border-2: #D4D4D8;
+  --accent: #4F46E5;
+  --accent-2: #6366F1;
+  --accent-soft: #EEF0FF;
+  --good: #10B981;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
+  .mono { font-family: "SF Mono", "JetBrains Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
 }
 
 /* 분석 중 바운스 딜레이 */
 .animation-delay-150 { animation-delay: 150ms; }
 .animation-delay-300 { animation-delay: 300ms; }
 
-/* 질문 처리 진행 바 (classifier 이전 indeterminate 구간) */
+/* 쿼리 indeterminate 진행 바 */
 @keyframes progress-indeterminate {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(400%); }
@@ -39,8 +42,12 @@ body {
   animation: progress-indeterminate 1.2s ease-in-out infinite;
 }
 
-/* 스크롤바 스타일 */
+/* 스피너 (QueryProgress 로더) */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
+/* 스크롤바 */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
