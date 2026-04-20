@@ -3,8 +3,8 @@ export default function JsonLd() {
   const data = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "보험 약관 QA",
-    description: "AI 기반 보험 약관 질의응답 서비스. PDF를 업로드하고 질문하면 근거 조항과 함께 답변을 제공합니다.",
+    name: "ClauseIQ",
+    description: "조항 단위 근거 인용 보험 약관 QA Agent. PDF 업로드 → 한국어 질의 → 조·항·호 단위 답변.",
     url: baseUrl,
     applicationCategory: "FinanceApplication",
     operatingSystem: "Web",

@@ -1,6 +1,6 @@
 # 프로젝트 구현 상태
 
-**마지막 업데이트:** 2026-04-19
+**마지막 업데이트:** 2026-04-20
 **현재 추천 다음 작업:** `model-service` (Phi-3 CPU 양자화 자체 서빙) — JD "AI 모델 서빙 프레임워크" 갭 보완
 
 ---
@@ -87,6 +87,7 @@ Tier 3 (선택적 차별화)
 
 | 날짜 | 변경 | 관련 스펙 |
 |---|---|---|
+| 2026-04-20 | UI 리디자인 (Claude Design 기반) — ClauseIQ 브랜드, lucide-react 아이콘, CSS 토큰, 랜딩/로그인/대시보드 전면 개편 (비즈니스 로직 보존) | `2026-04-19-ui-redesign-claude-design.md` |
 | 2026-04-19 | Railway 실배포 + CI/CD 자동화 (3 service Hobby, Doppler ↔ Railway sync, GitHub Actions 6 job, main push → auto-deploy, Qdrant Cloud + Langfuse Cloud 활성). Live: https://ui-service-production-4cab.up.railway.app | `2026-04-18-railway-deployment.md` |
 | 2026-04-18 | Supervisor 패턴 + Hierarchical Team (retrieval_team, answer_team subgraph) | `2026-04-18-supervisor-pattern.md` |
 | 2026-04-18 | 쿼리 진행 상태 SSE 전환 (폴링 제거, EventSource + EventEmitter pub/sub, eval runner SSE 구독) | `2026-04-17-query-sse.md` |
