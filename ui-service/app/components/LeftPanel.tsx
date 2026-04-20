@@ -92,7 +92,7 @@ export default function LeftPanel() {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [ingesting?.jobId, ingesting?.currentStep, setIngesting, setDocuments]);
+  }, [ingesting?.jobId, ingesting?.currentStep, ingesting?.filename, setIngesting, setDocuments, selectDocument]);
 
   const uploadFile = useCallback(
     async (file: File) => {

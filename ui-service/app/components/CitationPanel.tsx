@@ -123,7 +123,15 @@ export default function CitationPanel() {
             return (
               <div
                 key={i}
+                role="button"
+                tabIndex={0}
                 onClick={() => setModalCitation({ citation: c, score })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setModalCitation({ citation: c, score });
+                  }
+                }}
                 className="rounded-[10px] px-3.5 py-3 cursor-pointer"
                 style={{
                   background: isActive ? "var(--accent-soft)" : "var(--surface)",

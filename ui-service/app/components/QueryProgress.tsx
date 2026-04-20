@@ -18,7 +18,7 @@ export default function QueryProgress({ stepLabel, progressIndex, totalSteps }: 
       >
         <div className="flex items-center justify-between mb-1.5">
           <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold">
-            <Loader2 size={12} className="animate-spin" style={{ color: "var(--accent)" }} aria-label="Loading" />
+            <Loader2 size={12} className="animate-spin" style={{ color: "var(--accent)" }} aria-hidden="true" />
             {stepLabel}
           </span>
           {hasDeterminate && (
