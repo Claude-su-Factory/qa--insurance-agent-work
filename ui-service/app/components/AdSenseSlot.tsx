@@ -21,7 +21,7 @@ export default function AdSenseSlot({ variant = "panel" }: AdSenseSlotProps) {
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch {}
-  }, [pubId, slotId]);
+  }, []);
 
   if (!pubId || !slotId) return null;
 
@@ -41,6 +41,7 @@ export default function AdSenseSlot({ variant = "panel" }: AdSenseSlotProps) {
           <ins
             className="adsbygoogle"
             style={{ display: "block", minHeight: 100 }}
+            aria-label="광고"
             data-ad-client={pubId}
             data-ad-slot={slotId}
             data-ad-format="auto"
