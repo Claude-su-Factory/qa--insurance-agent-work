@@ -16,16 +16,20 @@ export default function AdSenseSlot() {
     if (!pubId || !slotId) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch {
-      // AdSense load failure는 무시
-    }
+    } catch {}
   }, [pubId, slotId]);
 
   if (!pubId || !slotId) return null;
 
   return (
-    <div className="p-3 border-t border-slate-100">
-      <div className="min-h-[100px] bg-slate-50 rounded-md overflow-hidden">
+    <div
+      className="p-3.5"
+      style={{ borderTop: "1px solid var(--border)" }}
+    >
+      <div
+        className="min-h-[100px] rounded-md overflow-hidden"
+        style={{ background: "var(--bg-2)" }}
+      >
         <ins
           className="adsbygoogle"
           style={{ display: "block", minHeight: 100 }}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { Upload, FolderOpen, FileText, Check } from "lucide-react";
 import CircleProgress from "./CircleProgress";
 import { useApp } from "../context/AppContext";
 import { createClient } from "../lib/supabase/client";
@@ -13,7 +14,6 @@ const STEP_LABELS: Record<string, string> = {
   done: "완료",
   failed: "실패",
 };
-
 const STEPS = ["parsing", "chunking", "embedding", "storing"] as const;
 
 export default function LeftPanel() {
@@ -22,7 +22,7 @@ export default function LeftPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  // 초기 문서 목록 로드
+  // 초기 로드
   useEffect(() => {
     async function loadDocuments() {
       const { data } = await supabase
@@ -30,7 +30,6 @@ export default function LeftPanel() {
         .select("id, filename, chunk_count, created_at, status")
         .eq("status", "ready")
         .order("created_at", { ascending: false });
-
       if (data) {
         setDocuments(
           data.map((d) => ({
@@ -45,14 +44,12 @@ export default function LeftPanel() {
     loadDocuments();
   }, []);
 
-  // 1초 polling
+  // polling
   useEffect(() => {
     if (!ingesting || ingesting.currentStep === "done" || ingesting.currentStep === "failed") return;
-
     const interval = setInterval(async () => {
       const res = await fetch(`/api/ingest/status/${ingesting.jobId}`);
       if (!res.ok) return;
-
       const data = await res.json();
       setIngesting((prev) =>
         prev
@@ -66,14 +63,12 @@ export default function LeftPanel() {
             }
           : null
       );
-
       if (data.step === "done") {
         const { data: docs } = await supabase
           .from("documents")
           .select("id, filename, chunk_count, created_at, status")
           .eq("status", "ready")
           .order("created_at", { ascending: false });
-
         if (docs) {
           setDocuments(
             docs.map((d) => ({
@@ -96,7 +91,6 @@ export default function LeftPanel() {
         setTimeout(() => setIngesting(null), 2000);
       }
     }, 1000);
-
     return () => clearInterval(interval);
   }, [ingesting?.jobId, ingesting?.currentStep, setIngesting, setDocuments]);
 
@@ -106,10 +100,8 @@ export default function LeftPanel() {
         alert("PDF 파일만 업로드 가능합니다.");
         return;
       }
-
       const formData = new FormData();
       formData.append("file", file);
-
       const res = await fetch("/api/ingest", { method: "POST", body: formData });
       if (res.status === 409) {
         alert("이미 관리 중인 약관입니다.");
@@ -120,7 +112,6 @@ export default function LeftPanel() {
         alert(data.error ?? "업로드 실패");
         return;
       }
-
       setIngesting({
         jobId: data.jobId,
         filename: file.name,
@@ -148,39 +139,73 @@ export default function LeftPanel() {
   };
 
   return (
-    <aside className="w-60 bg-white flex flex-col border-r border-slate-100 flex-shrink-0">
-      <div className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-        📁 내 약관
+    <aside className="flex flex-col overflow-hidden" style={{ background: "var(--bg)" }}>
+      <div className="px-4.5 pt-4 pb-2.5 flex items-center gap-2">
+        <span
+          className="text-xs font-bold tracking-[0.1em] uppercase"
+          style={{ color: "var(--muted)" }}
+        >
+          내 약관
+        </span>
+        <span
+          className="ml-auto text-[11px] font-semibold px-1.5 py-0.5 rounded"
+          style={{ background: "var(--bg-2)", color: "var(--muted)" }}
+        >
+          {documents.length}
+        </span>
       </div>
-      <div className="p-3">
+      {/* Uploader */}
+      <div className="mx-3.5 mb-3.5">
         <div
-          className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
-            isDragOver
-              ? "border-blue-500 bg-blue-50"
-              : "border-blue-200 bg-slate-50 hover:border-blue-400 hover:bg-blue-50"
+          className={`rounded-[10px] p-4 text-center cursor-pointer ${
+            isDragOver ? "ring-2 ring-offset-0" : ""
           }`}
+          style={{
+            background: "var(--surface)",
+            border: `1.5px dashed ${isDragOver ? "var(--accent)" : "var(--border-2)"}`,
+          }}
           onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
           onDragLeave={() => setIsDragOver(false)}
           onDrop={handleDrop}
         >
-          <div className="text-2xl mb-2">📄</div>
-          <p className="text-[11px] text-slate-500 mb-1">PDF 약관 파일 업로드</p>
-          <p className="text-[10px] text-slate-400 mb-3">드래그 앤 드롭 또는</p>
-          <button className="bg-blue-600 text-white text-[11px] font-semibold px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
+          <div
+            className="w-7 h-7 rounded-lg grid place-items-center mx-auto mb-2.5"
+            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+          >
+            <Upload size={14} aria-hidden="true" />
+          </div>
+          <div className="text-[12.5px] font-semibold mb-1">새 PDF 업로드</div>
+          <div className="text-[11px] mb-2.5" style={{ color: "var(--muted)" }}>
+            드래그 · 최대 30MB
+          </div>
+          <span
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3.5 py-1.5 rounded-md"
+            style={{ background: "var(--fg)", color: "var(--bg-alt)" }}
+          >
+            <FolderOpen size={12} aria-hidden="true" />
             파일 선택
-          </button>
+          </span>
           <input ref={inputRef} type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
         </div>
       </div>
 
+      {/* ingesting progress */}
       {ingesting && (
-        <div className="mx-3 mb-3 bg-white border border-slate-200 rounded-xl p-3">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">📑</span>
+        <div
+          className="mx-3.5 mb-3.5 rounded-xl p-3"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+        >
+          <div className="flex items-center gap-2 mb-2.5">
+            <FileText size={14} style={{ color: "var(--muted)" }} aria-hidden="true" />
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-slate-800 truncate">{ingesting.filename}</p>
-              <p className="text-[9px] text-slate-400">{ingesting.filesize}</p>
+              <p className="text-[11px] font-semibold truncate">{ingesting.filename}</p>
+              <p className="text-[9px]" style={{ color: "var(--muted)" }}>
+                {ingesting.filesize}
+              </p>
             </div>
           </div>
           <div className="flex gap-3 items-start">
@@ -188,17 +213,26 @@ export default function LeftPanel() {
               progress={ingesting.progress}
               label={ingesting.currentStep === "done" ? "완료" : "처리중"}
             />
-            <div className="flex-1 bg-slate-50 rounded-lg p-2 font-mono">
+            <div
+              className="flex-1 rounded-lg p-2 mono"
+              style={{ background: "var(--bg-2)" }}
+            >
               {STEPS.map((step) => {
                 const stepIndex = STEPS.indexOf(step);
                 const currentIndex = STEPS.indexOf(ingesting.currentStep as typeof STEPS[number]);
                 const isDone = stepIndex < currentIndex || ingesting.currentStep === "done";
                 const isActive = step === ingesting.currentStep;
+                const color = isDone ? "var(--good)" : isActive ? "var(--accent)" : "var(--muted)";
                 return (
-                  <div key={step} className={`flex items-center gap-2 text-[9px] mb-1.5 last:mb-0 ${isDone ? "text-green-600" : isActive ? "text-blue-600" : "text-slate-300"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isDone ? "bg-green-500" : isActive ? "bg-blue-500 animate-pulse" : "bg-slate-200"}`} />
+                  <div key={step} className="flex items-center gap-2 text-[9px] mb-1.5 last:mb-0" style={{ color }}>
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? "animate-pulse" : ""}`}
+                      style={{ background: color }}
+                    />
                     <span>
-                      {isDone ? `✓ ${STEP_LABELS[step]}` : isActive
+                      {isDone
+                        ? `✓ ${STEP_LABELS[step]}`
+                        : isActive
                         ? `${STEP_LABELS[step]}${ingesting.totalChunks > 0 ? ` ${ingesting.currentChunk}/${ingesting.totalChunks}` : "..."}`
                         : STEP_LABELS[step]}
                     </span>
@@ -206,35 +240,59 @@ export default function LeftPanel() {
                 );
               })}
               {ingesting.currentStep === "failed" && (
-                <div className="text-red-500 text-[9px]">✗ {ingesting.error}</div>
+                <div className="text-[9px]" style={{ color: "#EF4444" }}>
+                  ✗ {ingesting.error}
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {documents.length > 0 && (
-        <>
-          <div className="px-4 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">업로드된 약관</div>
-          <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
-            {documents.map((doc) => {
-              const isSelected = selectedDocument?.id === doc.id;
-              return (
-              <div key={doc.id} onClick={() => selectDocument(doc)} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer hover:border-blue-300 transition-colors ${isSelected ? "border-blue-500 bg-blue-100" : "bg-blue-50 border-blue-100"}`}>
-                <div className="w-7 h-8 bg-blue-100 rounded flex items-center justify-center text-xs flex-shrink-0">📋</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-slate-800 truncate">{doc.filename.replace(".pdf", "")}</p>
-                  <p className="text-[9px] text-slate-400">{doc.clauseCount}개 조항</p>
+      <div
+        className="px-4.5 py-1.5 text-[10.5px] font-bold tracking-[0.12em] uppercase"
+        style={{ color: "var(--muted)" }}
+      >
+        업로드됨
+      </div>
+      <div className="flex-1 overflow-y-auto px-2.5 pb-3.5">
+        {documents.map((doc) => {
+          const isActive = selectedDocument?.id === doc.id;
+          return (
+            <div
+              key={doc.id}
+              onClick={() => selectDocument(doc)}
+              className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg cursor-pointer mb-0.5"
+              style={{
+                background: isActive ? "var(--accent-soft)" : "transparent",
+              }}
+            >
+              <div
+                className="w-7 h-8 rounded grid place-items-center flex-shrink-0"
+                style={{
+                  background: isActive ? "var(--accent)" : "var(--surface)",
+                  border: `1px solid ${isActive ? "var(--accent)" : "var(--border)"}`,
+                  color: isActive ? "#fff" : "var(--muted)",
+                }}
+              >
+                <FileText size={13} aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div
+                  className="text-[12.5px] font-semibold truncate tracking-[-0.005em]"
+                  style={{ color: isActive ? "var(--accent)" : "var(--fg)" }}
+                >
+                  {doc.filename.replace(".pdf", "")}
                 </div>
-                <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-[8px] font-bold">✓</span>
+                <div className="text-[10.5px]" style={{ color: "var(--muted)" }}>
+                  {doc.clauseCount} 조항
                 </div>
               </div>
-            );
-            })}
-          </div>
-        </>
-      )}
+              <Check size={12} style={{ color: "var(--good)" }} aria-hidden="true" />
+            </div>
+          );
+        })}
+      </div>
     </aside>
   );
 }
