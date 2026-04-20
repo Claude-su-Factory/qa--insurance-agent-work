@@ -100,7 +100,6 @@ export default function CitationPanel() {
             AI가 답변하면<br />참조한 조항이<br />여기 표시됩니다
           </p>
         </div>
-        <AdSenseSlot />
       </aside>
     );
   }
