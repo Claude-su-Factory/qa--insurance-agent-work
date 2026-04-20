@@ -5,6 +5,7 @@ import LandingProductFrame from "./components/LandingProductFrame";
 import LandingFeatures from "./components/LandingFeatures";
 import LandingCTA from "./components/LandingCTA";
 import LandingFooter from "./components/LandingFooter";
+import AdSenseSlot from "./components/AdSenseSlot";
 import { createClient } from "./lib/supabase/server";
 
 export default async function Home() {
@@ -22,6 +23,7 @@ export default async function Home() {
         <LandingHero />
         <LandingProductFrame />
         <LandingFeatures />
+        <AdSenseSlot variant="inline" />
         <LandingCTA />
       </main>
       <LandingFooter />
